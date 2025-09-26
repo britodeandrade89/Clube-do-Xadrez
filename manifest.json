@@ -8,12 +8,12 @@
   "description": "App de xadrez para clubes escolares",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='88' fill='%23050a14'/%3E%3Cpath d='M64 128h64v16H64zM80 64h32v32H80z' fill='%23ffffff'/%3E%3C/svg%3E",
+      "src": "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='88' fill='%23050a14'/%3E%3Cpath d='M64 128h64v16H64zM80 64h32v32H80z' fill='%23ffffff'/%3E%3C/svg%3E",
       "sizes": "192x192",
       "type": "image/svg+xml"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='%23050a14'/%3E%3Cpath d='M170 340h172v40H170zM210 170h92v92h-92z' fill='%23ffffff'/%3E%3C/svg%3E",
+      "src": "image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='%23050a14'/%3E%3Cpath d='M170 340h172v40H170zM210 170h92v92h-92z' fill='%23ffffff'/%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml"
     }
