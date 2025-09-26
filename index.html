@@ -72,6 +72,19 @@
         }
         .status-P { background-color: #065f46; }
         .status-F { background-color: #7f1d1d; }
+        /* Modern pieces */
+        .modern-piece {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .modern-white { color: #ffffff; }
+        .modern-black { color: #2c2c2c; }
     </style>
 </head>
 <body x-data="{showSplash: true}" :class="{'overflow-hidden': showSplash}">
@@ -93,7 +106,7 @@
         </div>
 
         <div class="main-app-content p-4" :class="{'hidden': showSplash}">
-            <!-- Tabs -->
+            <!-- Menu Principal -->
             <div class="flex space-x-4 mb-4 border-b border-gray-700">
                 <button @click="activeTab = 'attendance'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'attendance'}" class="pb-2">Presença</button>
                 <button @click="activeTab = 'ranking'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'ranking'}" class="pb-2">Ranking</button>
@@ -116,6 +129,10 @@
             <div x-show="modalPresenca" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div class="bg-gray-900 p-4 rounded max-w-lg w-full max-h-[90vh] overflow-y-auto">
                     <h3 class="text-xl font-bold mb-2" x-text="turmaAtual?.nome"></h3>
+                    <div class="mb-2">
+                        <label class="block mb-1 text-sm">Data da Aula:</label>
+                        <input type="date" x-model="dataPresenca" class="bg-gray-800 text-white p-2 rounded w-full text-sm">
+                    </div>
                     <table class="attendance-table">
                         <thead>
                             <tr>
@@ -143,34 +160,39 @@
             </div>
 
             <!-- Ranking -->
-            <div x-show="activeTab === 'ranking'" class="space-y-2">
-                <h2 class="text-xl font-bold mb-2">Ranking de Alunos</h2>
-                <div class="bg-gray-900 rounded max-h-96 overflow-y-auto">
-                    <table class="w-full text-sm">
-                        <thead class="sticky top-0 bg-gray-800">
-                            <tr>
-                                <th class="p-2 text-left">#</th>
-                                <th class="p-2 text-left">Nome</th>
-                                <th class="p-2 text-right">V</th>
-                                <th class="p-2 text-right">E</th>
-                                <th class="p-2 text-right">D</th>
-                                <th class="p-2 text-right">Pts</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="(player, index) in rankedPlayers" :key="player.id">
-                                <tr class="border-b border-gray-800 hover:bg-gray-850">
-                                    <td class="p-2" x-text="index + 1"></td>
-                                    <td class="p-2" x-text="player.name"></td>
-                                    <td class="p-2 text-right" x-text="player.wins"></td>
-                                    <td class="p-2 text-right" x-text="player.draws"></td>
-                                    <td class="p-2 text-right" x-text="player.losses"></td>
-                                    <td class="p-2 text-right" x-text="player.points.toFixed(1)"></td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
+            <div x-show="activeTab === 'ranking'" class="space-y-4">
+                <h2 class="text-xl font-bold mb-2">Ranking por Turma</h2>
+                <template x-for="turma in turmas" :key="turma.codigo">
+                    <div class="bg-gray-900 p-3 rounded">
+                        <h3 class="font-bold mb-2" x-text="turma.nome"></h3>
+                        <div class="bg-gray-800 rounded max-h-40 overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead class="sticky top-0 bg-gray-800">
+                                    <tr>
+                                        <th class="p-2 text-left">#</th>
+                                        <th class="p-2 text-left">Nome</th>
+                                        <th class="p-2 text-right">V</th>
+                                        <th class="p-2 text-right">E</th>
+                                        <th class="p-2 text-right">D</th>
+                                        <th class="p-2 text-right">Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(player, index) in getRankingPorTurma(turma.codigo)" :key="player.id">
+                                        <tr class="border-b border-gray-800 hover:bg-gray-850">
+                                            <td class="p-2" x-text="index + 1"></td>
+                                            <td class="p-2" x-text="player.name"></td>
+                                            <td class="p-2 text-right" x-text="player.wins"></td>
+                                            <td class="p-2 text-right" x-text="player.draws"></td>
+                                            <td class="p-2 text-right" x-text="player.losses"></td>
+                                            <td class="p-2 text-right" x-text="player.points.toFixed(1)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <!-- Torneios -->
@@ -490,6 +512,7 @@
                 // --- PRESENÇA MODAL ---
                 modalPresenca: false,
                 turmaAtual: null,
+                dataPresenca: new Date().toISOString().split('T')[0],
 
                 // --- RANKING ---
                 rankedPlayers: [],
@@ -538,24 +561,22 @@
                     return dados ? dados.totalF : 0;
                 },
 
-                // --- RANKING ---
-                gerarRankingCompleto() {
+                // --- RANKING POR TURMA ---
+                getRankingPorTurma(codigo) {
+                    const ranking = this.rankingReal[codigo] || {};
                     let todos = [];
-                    Object.keys(this.rankingReal).forEach(codigo => {
-                        const ranking = this.rankingReal[codigo];
-                        Object.keys(ranking).forEach(nome => {
-                            const r = ranking[nome];
-                            todos.push({
-                                id: nome.toLowerCase().replace(/\s+/g, '-'),
-                                name: nome,
-                                wins: r.wins,
-                                losses: r.losses,
-                                draws: r.draws,
-                                points: r.points
-                            });
+                    Object.keys(ranking).forEach(nome => {
+                        const r = ranking[nome];
+                        todos.push({
+                            id: nome.toLowerCase().replace(/\s+/g, '-'),
+                            name: nome,
+                            wins: r.wins,
+                            losses: r.losses,
+                            draws: r.draws,
+                            points: r.points
                         });
                     });
-                    this.rankedPlayers = todos.sort((a, b) => b.points - a.points);
+                    return todos.sort((a, b) => b.points - a.points);
                 },
 
                 // --- TORNEIOS ---
