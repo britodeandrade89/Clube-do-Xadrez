@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Club App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase (opcional - descomente e preencha se quiser multiplayer) -->
+    <!--
+    <script>
+      window.__firebase_config = JSON.stringify({
+        apiKey: "SUA_API_KEY",
+        authDomain: "seu-projeto.firebaseapp.com",
+        projectId: "seu-projeto",
+        appId: "1:1234567890:web:abcdef123456"
+      });
+    </script>
+    -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, query, getDocs, updateDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        window.firebase = {
+            initializeApp, getAuth, signInAnonymously, onAuthStateChanged,
+            getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, query, getDocs, updateDoc, serverTimestamp, orderBy
+        };
+    </script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#050a14">
+    <style>
+        body, html { font-family: 'Inter', sans-serif; background-color: #050a14; color: #e0e0e0; height: 100%; margin: 0; padding: 0; }
+        .app-container[x-data] { height: 100vh; display: flex; flex-direction: column; }
+        [x-cloak] { display: none !important; }
+        .piece-white { fill: #ffffff; stroke: #333; stroke-width: 1.5; }
+        .piece-black { fill: #2c2c2c; stroke: #ccc; stroke-width: 1.5; }
+        .splash-screen {
+            background-color: #050a14;
+            cursor: pointer;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+        }
+        .main-app-content {
+             flex-grow: 1;
+             overflow-y: auto;
+        }
+    </style>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+    <script>
+        function chessClub() {
+            return {
+                showSplash: true,
+                db: null, auth: null, user: null, userId: null,
+                activeTab: 'play',
+                game: { players: { white: { name: 'Brancas', elo: '----' }, black: { name: 'Pretas', elo: '----' } }, time: { white: 0, black: 0 } },
+                board: [],
+                chess: null,
+                gameId: null,
+                playerColor: null,
+                isOpponentTurn: false,
+                gameStatus: 'Inicie um novo jogo.',
+                selectedPiece: null,
+                possibleMoves: [],
+                pgnMoves: [],
+                opponentId: '',
+                invitation: null,
+                promotion: { show: false, from: '', to: '' },
+                gameTimer: null,
+                newGameSettings: { mode: 'player', time: 10 },
+                turmas: [
+                    { nome: 'Turma 611', alunos: ["Yasmin Faquetin", "Davi Lucca Martins Pereira", "Theo Machado", "Heitor Velasco", "Isaque de Medeiros", "Maria Liz", "Davi Lucas", "Ana Clara", "Nicolas Ferreira", "Pietro Coutinho", "Miguel Roberto", "Bernardo Costa", "Yasmin da Silva Melo", "Yuri Nascimento", "Isabella Teixeira das Chagas", "Isadora Torres de Andrade", "Alice Caldeira de Lima", "Nicolly Marques"] },
+                    { nome: 'Turma 612', alunos: ["Lorena Militão", "Thaylor Barros", "Davi Luiz", "Isaac de Oliveira", "Pérola de Souza", "João Gabriel", "Miguel Araújo", "Ana Beatriz", "Jamylle Marcelo de Moraes", "Talita Reis", "Maria Eduarda dos Santos Maciel", "Hadassa Gomes Travasso", "Daniele Pereira de Oliveira", "Carlos Alexandre"] },
+                    { nome: 'Turma 613', alunos: ["Agatha Silva", "Alice do Nascimento", "Aysha Vitoria", "Davi Lucca Santos Mendonça", "Edgar de Carvalho Rodrigues", "Eduarda Moreira", "Emanuelly Menezes de Oliveira", "Ian Carlos da Silva Nascimento", "Jefferson Nery", "Jefferson Santos", "Joyce de Souza", "Kamilly Santos", "Lara Beatriz", "Laura de Oliveira", "Laura Vitoria", "Maria Alice", "Maria Clara", "Maria Fernanda", "Miguel da Silva", "Ruan Pablo", "Ryan da Conceição", "Samuel Carlos", "Théo Alves", "Victor Hugo"] },
+                    { nome: 'Turma 621', alunos: ["Luiz Fellipe Silva Miranda", "Lincoln Lopes", "Émerson Menezes", "Pedro Nicolas da Silva", "Pedro Henrique da Conceição", "Yan Fonseca", "Arthur de Paula Carvalho", "João Pedro Fidélis da Silva", "Davi Lucas Ribeiro", "Esther da Silva"] },
+                    { nome: 'Turma 622', alunos: ["Alice Victoria", "Ana Julia Goulart", "Anthony Gabriel", "Arthur Patrick da Silva Trindade", "Felipe Araújo", "Gabriel do Nascimento", "Giovanna Netto", "Guilherme Santos", "Hagata Guimarães", "Heitor Araújo"] },
+                    { nome: 'Turma 623', alunos: ["Ana Heloiza Marcolina Porto", "Cauã Lanor", "Emilly da Silva", "Gabriella Sofia", "Henrique Siqueira", "Lucas Melo", "Maria Eduarda Costa", "Maria Roberta"] },
+                ],
+                attendance: {
+                    "611": [
+                        { "name": "Yasmin Faquetin", "lastStatus": "F" }, { "name": "Davi Lucca Martins Pereira", "lastStatus": "P" }, { "name": "Theo Machado", "lastStatus": "P" }, { "name": "Heitor Velasco", "lastStatus": "F" }, { "name": "Isaque de Medeiros", "lastStatus": "F" }, { "name": "Maria Liz", "lastStatus": "P" }, { "name": "Davi Lucas", "lastStatus": "P" }, { "name": "Ana Clara", "lastStatus": "P" }, { "name": "Nicolas Ferreira", "lastStatus": "F" }, { "name": "Pietro Coutinho", "lastStatus": "F" }, { "name": "Miguel Roberto", "lastStatus": "F" }, { "name": "Bernardo Costa", "lastStatus": "F" }, { "name": "Yasmin da Silva Melo", "lastStatus": "F" }, { "name": "Yuri Nascimento", "lastStatus": "P" }, { "name": "Isabella Teixeira das Chagas", "lastStatus": "P" }, { "name": "Isadora Torres de Andrade", "lastStatus": "P" }, { "name": "Alice Caldeira de Lima", "lastStatus": "P" }, { "name": "Nicolly Marques", "lastStatus": "F" }
+                    ],
+                    "612": [
+                        { "name": "Lorena Militão", "lastStatus": "P" }, { "name": "Thaylor Barros", "lastStatus": "F" }, { "name": "Davi Luiz", "lastStatus": "P" }, { "name": "Isaac de Oliveira", "lastStatus": "P" }, { "name": "Pérola de Souza", "lastStatus": "F" }, { "name": "João Gabriel", "lastStatus": "P" }, { "name": "Miguel Araújo", "lastStatus": "P" }, { "name": "Ana Beatriz", "lastStatus": "P" }, { "name": "Jamylle Marcelo de Moraes", "lastStatus": "P" }, { "name": "Talita Reis", "lastStatus": "P" }, { "name": "Maria Eduarda dos Santos Maciel", "lastStatus": "P" }, { "name": "Hadassa Gomes Travasso", "lastStatus": "P" }, { "name": "Daniele Pereira de Oliveira", "lastStatus": "P" }, { "name": "Carlos Alexandre", "lastStatus": "F" }
+                    ],
+                    "613": [
+                        { "name": "Agatha Silva", "lastStatus": "P" }, { "name": "Alice do Nascimento", "lastStatus": "P" }, { "name": "Aysha Vitoria", "lastStatus": "P" }, { "name": "Davi Lucca Santos Mendonça", "lastStatus": "F" }, { "name": "Edgar de Carvalho Rodrigues", "lastStatus": "P" }, { "name": "Eduarda Moreira", "lastStatus": "P" }, { "name": "Emanuelly Menezes de Oliveira", "lastStatus": "F" }, { "name": "Ian Carlos da Silva Nascimento", "lastStatus": "P" }, { "name": "Jefferson Nery", "lastStatus": "P" }, { "name": "Jefferson Santos", "lastStatus": "P" }, { "name": "Joyce de Souza", "lastStatus": "P" }, { "name": "Kamilly Santos", "lastStatus": "F" }, { "name": "Lara Beatriz", "lastStatus": "P" }, { "name": "Laura de Oliveira", "lastStatus": "F" }, { "name": "Laura Vitoria", "lastStatus": "F" }, { "name": "Maria Alice", "lastStatus": "P" }, { "name": "Maria Clara", "lastStatus": "F" }, { "name": "Maria Fernanda", "lastStatus": "P" }, { "name": "Miguel da Silva", "lastStatus": "F" }, { "name": "Ruan Pablo", "lastStatus": "P" }, { "name": "Ryan da Conceição", "lastStatus": "F" }, { "name": "Samuel Carlos", "lastStatus": "P" }, { "name": "Théo Alves", "lastStatus": "P" }, { "name": "Victor Hugo", "lastStatus": "P" }
+                    ],
+                    "621": [
+                        { "name": "Luiz Fellipe Silva Miranda", "lastStatus": "P" }, { "name": "Lincoln Lopes", "lastStatus": "P" }, { "name": "Émerson Menezes", "lastStatus": "F" }, { "name": "Pedro Nicolas da Silva", "lastStatus": "F" }, { "name": "Pedro Henrique da Conceição", "lastStatus": "P" }, { "name": "Yan Fonseca", "lastStatus": "F" }, { "name": "Arthur de Paula Carvalho", "lastStatus": "P" }, { "name": "João Pedro Fidélis da Silva", "lastStatus": "F" }, { "name": "Davi Lucas Ribeiro", "lastStatus": "F" }, { "name": "Esther da Silva", "lastStatus": "F" }
+                    ],
+                    "622": [
+                        { "name": "Alice Victoria", "lastStatus": "P" }, { "name": "Ana Julia Goulart", "lastStatus": "P" }, { "name": "Anthony Gabriel", "lastStatus": "P" }, { "name": "Arthur Patrick da Silva Trindade", "lastStatus": "F" }, { "name": "Felipe Araújo", "lastStatus": "F" }, { "name": "Gabriel do Nascimento", "lastStatus": "P" }, { "name": "Giovanna Netto", "lastStatus": "F" }, { "name": "Guilherme Santos", "lastStatus": "F" }, { "name": "Hagata Guimarães", "lastStatus": "F" }, { "name": "Heitor Araújo", "lastStatus": "F" }
+                    ],
+                    "623": [
+                        { "name": "Ana Heloiza Marcolina Porto", "lastStatus": "P" }, { "name": "Cauã Lanor", "lastStatus": "F" }, { "name": "Emilly da Silva", "lastStatus": "F" }, { "name": "Gabriella Sofia", "lastStatus": "F" }, { "name": "Henrique Siqueira", "lastStatus": "F" }, { "name": "Lucas Melo", "lastStatus": "F" }, { "name": "Maria Eduarda Costa", "lastStatus": "F" }, { "name": "Maria Roberta", "lastStatus": "F" }
+                    ]
+                },
+                currentAttendance: {},
+                attendanceDate: new Date().toISOString().slice(0, 10),
+                rankedPlayers: [],
+                tournaments: [],
+                newTournament: { name: '', date: ''},
+                init() {
+                    this.chess = new Chess();
+                    this.initializeBoard();
+                    this.generateRankings();
+                    this.initializeFirebase();
+                },
+                async initializeFirebase() {
+                    // Se não houver configuração do Firebase, o app roda offline
+                    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                    if (!firebaseConfig) {
+                        console.log("Firebase não configurado. Modo offline ativado.");
+                        return;
+                    }
+                    try {
+                        const app = window.firebase.initializeApp(firebaseConfig);
+                        this.auth = window.firebase.getAuth(app);
+                        this.db = window.firebase.getFirestore(app);
+                        window.firebase.onAuthStateChanged(this.auth, async (user) => {
+                            if (user) { this.user = user; this.userId = user.uid; } 
+                            else {
+                                try {
+                                    await window.firebase.signInAnonymously(this.auth);
+                                } catch (e) { console.error("Auth failed:", e); }
+                            }
+                            this.listenForInvitations();
+                            this.listenForTournaments();
+                        });
+                    } catch (error) { console.error('Firebase error:', error); }
+                },
+                get pgnNotationTable() {
+                    const pairs = [];
+                    for (let i = 0; i < this.pgnMoves.length; i += 2) {
+                        pairs.push({ white: this.pgnMoves[i], black: this.pgnMoves[i + 1] || '' });
+                    }
+                    return pairs;
+                },
+                generateRankings(){
+                    let allStudents = [];
+                    this.turmas.forEach(turma => {
+                        turma.alunos.forEach(aluno => {
+                            allStudents.push({
+                                id: aluno.toLowerCase().replace(/\s+/g, ''),
+                                name: aluno,
+                                elo: Math.floor(Math.random() * 800) + 800,
+                                games: Math.floor(Math.random() * 100),
+                                wins: Math.floor(Math.random() * 40),
+                                losses: Math.floor(Math.random() * 40),
+                                draws: Math.floor(Math.random() * 20),
+                            });
+                        });
+                    });
+                    this.rankedPlayers = [...new Map(allStudents.map(item => [item.name, item])).values()]
+                                        .sort((a,b) => b.elo - a.elo);
+                },
+                async createTournament() {
+                    if (!this.newTournament.name || !this.newTournament.date) return;
+                    alert("Torneios online requerem Firebase. Modo offline ativado.");
+                },
+                listenForTournaments() { /* offline */ },
+                startNewGame() {
+                    this.chess = new Chess();
+                    this.gameId = `local_${Date.now()}`;
+                    this.playerColor = 'w';
+                    this.game.time.white = this.newGameSettings.time * 60;
+                    this.game.time.black = this.newGameSettings.time * 60;
+                    if (this.newGameSettings.mode === 'computer') {
+                        this.game.players.white.name = 'Você';
+                        this.game.players.black.name = 'Computador';
+                    } else {
+                        this.game.players.white.name = 'Jogador 1';
+                        this.game.players.black.name = 'Jogador 2';
+                    }
+                    this.initializeBoard();
+                    this.startGameTimer();
+                },
+                formatTime(seconds) {
+                    if (seconds === null || isNaN(seconds)) return "00:00";
+                    const min = Math.floor(seconds / 60);
+                    const sec = seconds % 60;
+                    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+                },
+                startGameTimer() {
+                    if (this.gameTimer) clearInterval(this.gameTimer);
+                    this.gameTimer = setInterval(() => {
+                        if(this.chess.isGameOver()) { clearInterval(this.gameTimer); return; }
+                        const turn = this.chess.turn();
+                        if (turn === 'w') { if(this.game.time.white > 0) this.game.time.white--; if(this.game.time.white <= 0) this.handleTimeout('w'); } 
+                        else { if(this.game.time.black > 0) this.game.time.black--; if(this.game.time.black <= 0) this.handleTimeout('b'); }
+                    }, 1000);
+                },
+                handleTimeout(player) {
+                    clearInterval(this.gameTimer);
+                    this.gameStatus = `Tempo esgotado! ${player === 'w' ? 'Pretas' : 'Brancas'} vencem.`;
+                },
+                computerMove() {
+                    if (this.chess.isGameOver()) return;
+                    this.isOpponentTurn = true;
+                    setTimeout(() => {
+                        const moves = this.chess.moves();
+                        const move = moves[Math.floor(Math.random() * moves.length)];
+                        this.chess.move(move);
+                        this.isOpponentTurn = false;
+                        this.initializeBoard();
+                    }, 700);
+                },
+                initializeBoard() { 
+                    const fen = this.chess.fen(); 
+                    const boardData = fen.split(' ')[0]; 
+                    const rows = boardData.split('/'); 
+                    const newBoard = []; 
+                    for (let i = 0; i < 8; i++) { 
+                        const row = []; 
+                        let fileIndex = 0; 
+                        for (const char of rows[i]) { 
+                            if (isNaN(char)) { 
+                                const piece = this.fenToPiece(char); 
+                                row.push({ rank: i, file: fileIndex, piece: piece }); 
+                                fileIndex++; 
+                            } else { 
+                                for (let j = 0; j < parseInt(char); j++) { 
+                                    row.push({ rank: i, file: fileIndex, piece: null }); 
+                                    fileIndex++; 
+                                } 
+                            } 
+                        } 
+                        newBoard.push(row); 
+                    } 
+                    this.board = newBoard; 
+                    this.updateGameStatus(); 
+                    this.pgnMoves = this.chess.pgn().split(/\d+\./).filter(n => n).map(n => n.trim().split(' ')).flat().filter(s => s); 
+                },
+                fenToPiece(fenChar) { 
+                    const color = fenChar === fenChar.toUpperCase() ? 'w' : 'b'; 
+                    const type = fenChar.toLowerCase(); 
+                    return { type, color }; 
+                },
+                inviteToGame() { 
+                    alert("Convites online requerem Firebase. Use modo local ou computador.");
+                },
+                listenForInvitations() { /* offline */ },
+                acceptInvitation() { /* offline */ },
+                declineInvitation() { /* offline */ },
+                joinGame() { /* offline */ },
+                listenForGameUpdates() { /* offline */ },
+                handleSquareClick(rank, file) {
+                    const isLocalGame = this.gameId && this.gameId.startsWith('local_');
+                    if (isLocalGame) {
+                        const turn = this.chess.turn();
+                        const algebraic = this.toAlgebraic(rank, file);
+                        const square = this.board[rank][file];
+                        if (this.selectedPiece) {
+                            const from = this.toAlgebraic(this.selectedPiece.rank, this.selectedPiece.file);
+                            this.makeMove(from, algebraic);
+                        } else if (square && square.piece && square.piece.color === turn) {
+                            this.selectedPiece = { rank, file };
+                            const moves = this.chess.moves({ square: algebraic, verbose: true });
+                            this.possibleMoves = moves.map(move => this.fromAlgebraic(move.to));
+                        }
+                    }
+                },
+                promotePawn(piece) { 
+                    const { from, to } = this.promotion; 
+                    this.makeMove(from, to, piece); 
+                    this.promotion = { show: false, from: '', to: '' }; 
+                },
+                async makeMove(from, to, promotion) { 
+                    let move; 
+                    try { 
+                        move = this.chess.move({ from, to, promotion }); 
+                    } catch(e) {} 
+                    if (move) { 
+                        this.initializeBoard(); 
+                        if (this.gameId.startsWith('local_')) { 
+                            if (this.newGameSettings.mode === 'computer' && this.chess.turn() === 'b') { 
+                                this.computerMove(); 
+                            } 
+                        } 
+                    } 
+                    this.selectedPiece = null; 
+                    this.possibleMoves = []; 
+                    this.updateGameStatus(); 
+                },
+                updateGameStatus() { 
+                    let status = ''; 
+                    const turn = this.chess.turn() === 'w' ? 'Brancas' : 'Pretas'; 
+                    if (this.chess.isCheckmate()) { 
+                        status = `Xeque-mate! ${turn === 'Brancas' ? 'Pretas' : 'Brancas'} vencem.`; 
+                        clearInterval(this.gameTimer); 
+                    } else if (this.chess.isDraw()) { 
+                        status = 'Empate!'; 
+                        clearInterval(this.gameTimer); 
+                    } else { 
+                        status = `${turn} jogam.`; 
+                        if (this.chess.isCheck()) { 
+                            status += ` ${turn} estão em xeque.`; 
+                        } 
+                    } 
+                    this.gameStatus = status; 
+                },
+                toAlgebraic(rank, file) { 
+                    return String.fromCharCode(97 + file) + (8 - rank); 
+                },
+                fromAlgebraic(alg) { 
+                    const file = alg.charCodeAt(0) - 97; 
+                    const rank = 8 - parseInt(alg[1]); 
+                    return { rank, file }; 
+                },
+                isPossibleMove(rank, file) { 
+                    return this.possibleMoves.some(move => move.rank === rank && move.file === file); 
+                },
+                getPieceSVG(type, color) { 
+                    const symbolId = {p: 'pawn', r: 'rook', n: 'knight', b: 'bishop', q: 'queen', k: 'king'}[type.toLowerCase()]; 
+                    const svgClass = color === 'w' ? 'piece-white' : 'piece-black'; 
+                    if (!symbolId) return ''; 
+                    return `<svg class="w-full h-full" viewBox="0 0 45 45"><use href="#${symbolId}" class="${svgClass}"/></svg>`; 
+                }
+            }
+        }
+    </script>
+</head>
+<body x-data="{showSplash: true}" :class="{'overflow-hidden': showSplash}">
+    <!-- SVG Piece Definitions -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+        <symbol id="pawn" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.63V6M20 8h5" stroke-width="1.5" /><path d="M22.5 25c4.418 0 8-3.582 8-8 0-4.418-3.582-8-8-8-4.418 0-8 3.582-8 8 0 4.418 3.582 8 8 8z" stroke-width="1.2" /><path d="M22.5 25c-4.418 0-8 1.5-8 4v2h16v-2c0-2.5-3.582-4-8-4z" stroke-width="1.2" /><path d="M14.5 31v5.5h16V31" /><path d="M11.5 39.5h22" stroke-width="2" /></g></symbol>
+        <symbol id="rook" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zM12 36v-4h21v4H12zM11 14V9h4v2h5V9h5v2h5V9h4v5" stroke-width="1.5"/><path d="M34 14l-3 3H14l-3-3" /><path d="M31 17v12.5H14V17" /><path d="M31 29.5l1.5 2.5h-20l1.5-2.5" /><path d="M14 17h17" stroke-width="2.5" /></g></symbol>
+        <symbol id="knight" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10c1.333-1.333 1.333-3.333 0-5 1.333 1.667 2.333 4 .333 6.333-2 2.333-4.333 2-6.333 2 .667-1.333 1.667-3.333 2.667-5.333-1 2-1.667 3.667-2.667 5.333-1.333 0-2.667-1.333-4-4-1.333 2.667-1.333 5.333.667 8 .667 1.333 2 2.333 4 3 .667 2 1.667 4 3 6 2.667 2.667 6.333 3.667 11 3 2.667-2 3.333-4.333 4-7 .667-2.667 0-5-1-7-1-2-2.333-3.667-4-5-1.667-1.333-3.667-2-6-2z" stroke-width="1.5" /><path d="M25 32c-2.667 1.333-5.333 2-8 2-2.667 0-5-1-7-3-1.333-2-2-4.333-2-7 0-2 .667-4 2-6 .667-1.333 1.667-2.333 3-3" stroke-width="1.5" /><path d="M15 39.5s1 1 3 1 4-1 4-1" stroke-width="2"/></g></symbol>
+        <symbol id="bishop" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zM15 36v-4h15v4H15zM12 32l4-4h13l4 4H12z" /><path d="M22.5 8c-1.424 0-2.5 2.5-2.5 4.5 0 2 1.076 4.5 2.5 4.5s2.5-2.5 2.5-4.5c0-2-1.076-4.5-2.5-4.5z" /><path d="M22.5 17c-2.5 0-4.5 2-4.5 4.5V26h9v-4.5c0-2.5-2-4.5-4.5-4.5z" /><path d="M18 26h9" stroke-width="2.5" /></g></symbol>
+        <symbol id="queen" viewBox="0 0 45 45"><path d="M8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM25 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM33 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM41 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" /><path d="M8 12s2 6 2 8c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 2-8 2-8" /><path d="M17 12s2 6 2 8c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 2-8 2-8" /><path d="M25 9s1 7 1 9c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 1-9 1-9" /><path d="M33 12s2 6 2 8c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 2-8 2-8" /><path d="M9 26c1.5-1 3.5-1.5 6.5-1.5 3 0 5 .5 6.5 1.5" stroke-width="1.2" /><path d="M9 26c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 1-5 1-5" /><path d="M15 21s1 5 1 5c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0 0 1-5 1-5" /><path d="M24 21s1 5 1 5c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0 0 1-5 1-5" /><path d="M30 21s1 5 1 5c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 1-5 1-5" /><path d="M36 26c0 2-1.5 3-1.5 3s-1.5-1-1.5-3c0-2-1-5-1-5" /><path d="M9 39h27v-3H9v3zM12 36v-4h21v4H12z" /><path d="M12 32s1.5-1.5 3-1.5 15 0 15 0 1.5 1.5 3 1.5" stroke-width="1.2" /></symbol>
+        <symbol id="king" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.5V6M20 8h5" stroke-width="1.5"/><path d="M22.5 25c4.418 0 8-3.582 8-8 0-4.418-3.582-8-8-8-4.418 0-8 3.582-8 8 0 4.418 3.582 8 8 8z" stroke-width="1.2" /><path d="M22.5 25c-4.418 0-8 1.5-8 4v2h16v-2c0-2.5-3.582-4-8-4z" stroke-width="1.2" /><path d="M14.5 31v5.5h16V31" /><path d="M11.5 39.5h22" stroke-width="2" /><path d="M20 8s-1.5-1-1.5-3 1.5-3 1.5-3" /><path d="M25 8s1.5-1 1.5-3-1.5-3-1.5-3" /></g></symbol>
+    </svg>
+    <div x-data="chessClub()" x-init="init()" class="app-container" x-cloak>
+        <!-- Splash Screen -->
+        <div x-show="showSplash" @click="showSplash = false" class="splash-screen fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-500" :class="{'opacity-0 pointer-events-none': !showSplash}">
+            <div class="text-3xl font-bold mb-4">Chess Club</div>
+            <div class="text-sm">Clique para iniciar</div>
+        </div>
+        <!-- App Content -->
+        <div class="main-app-content p-4" :class="{'hidden': showSplash}">
+            <!-- Tabs -->
+            <div class="flex space-x-4 mb-4 border-b border-gray-700">
+                <button @click="activeTab = 'play'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'play'}" class="pb-2">Jogar</button>
+                <button @click="activeTab = 'ranking'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'ranking'}" class="pb-2">Ranking</button>
+                <button @click="activeTab = 'attendance'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'attendance'}" class="pb-2">Presença</button>
+                <button @click="activeTab = 'tournaments'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'tournaments'}" class="pb-2">Torneios</button>
+            </div>
+
+            <!-- Play Tab -->
+            <div x-show="activeTab === 'play'" class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Novo Jogo</h2>
+                </div>
+                <div class="bg-gray-900 p-4 rounded">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <select x-model="newGameSettings.mode" class="bg-gray-800 text-white p-2 rounded">
+                            <option value="player">2 Jogadores</option>
+                            <option value="computer">vs Computador</option>
+                        </select>
+                        <select x-model="newGameSettings.time" class="bg-gray-800 text-white p-2 rounded">
+                            <option value="1">1 min</option>
+                            <option value="5">5 min</option>
+                            <option value="10" selected>10 min</option>
+                            <option value="30">30 min</option>
+                        </select>
+                    </div>
+                    <button @click="startNewGame" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Iniciar Jogo</button>
+                </div>
+
+                <!-- Game Board -->
+                <div x-show="gameId" class="bg-gray-900 p-4 rounded">
+                    <div class="flex justify-between mb-2 text-sm">
+                        <div>
+                            <span x-text="game.players.white.name"></span> (Brancas) — 
+                            <span x-text="formatTime(game.time.white)"></span>
+                        </div>
+                        <div>
+                            <span x-text="game.players.black.name"></span> (Pretas) — 
+                            <span x-text="formatTime(game.time.black)"></span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-8 w-full max-w-md mx-auto aspect-square">
+                        <template x-for="(row, rank) in board" :key="rank">
+                            <template x-for="(square, file) in row" :key="`${rank}-${file}`">
+                                <div 
+                                    @click="handleSquareClick(rank, file)"
+                                    :class="{
+                                        'bg-amber-200': isPossibleMove(rank, file),
+                                        'bg-green-500': selectedPiece && selectedPiece.rank === rank && selectedPiece.file === file,
+                                        'bg-gray-800': (rank + file) % 2 === 0,
+                                        'bg-gray-600': (rank + file) % 2 === 1,
+                                        'cursor-pointer': square.piece || isPossibleMove(rank, file)
+                                    }"
+                                    class="flex items-center justify-center relative"
+                                >
+                                    <div x-html="square.piece ? getPieceSVG(square.piece.type, square.piece.color) : ''"></div>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                    <div class="mt-2 text-center text-sm" x-text="gameStatus"></div>
+                </div>
+            </div>
+
+            <!-- Ranking Tab -->
+            <div x-show="activeTab === 'ranking'" class="space-y-2">
+                <h2 class="text-xl font-bold mb-2">Ranking de Alunos</h2>
+                <div class="bg-gray-900 rounded max-h-96 overflow-y-auto">
+                    <table class="w-full text-sm">
+                        <thead class="sticky top-0 bg-gray-800">
+                            <tr>
+                                <th class="p-2 text-left">#</th>
+                                <th class="p-2 text-left">Nome</th>
+                                <th class="p-2 text-right">ELO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(player, index) in rankedPlayers" :key="player.id">
+                                <tr class="border-b border-gray-800 hover:bg-gray-850">
+                                    <td class="p-2" x-text="index + 1"></td>
+                                    <td class="p-2" x-text="player.name"></td>
+                                    <td class="p-2 text-right" x-text="player.elo"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div x-show="activeTab === 'attendance'" class="space-y-4">
+                <h2 class="text-xl font-bold">Presença nas Turmas</h2>
+                <template x-for="turma in turmas" :key="turma.nome">
+                    <div class="bg-gray-900 p-3 rounded">
+                        <h3 class="font-bold mb-2" x-text="turma.nome"></h3>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-for="aluno in turma.alunos" :key="aluno">
+                                <span 
+                                    class="px-2 py-1 rounded text-xs"
+                                    :class="{
+                                        'bg-red-900': attendance[turma.nome.replace('Turma ', '')]?.find(a => a.name === aluno)?.lastStatus === 'F',
+                                        'bg-green-900': attendance[turma.nome.replace('Turma ', '')]?.find(a => a.name === aluno)?.lastStatus === 'P'
+                                    }"
+                                    x-text="aluno"
+                                ></span>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Tournaments Tab -->
+            <div x-show="activeTab === 'tournaments'" class="space-y-4">
+                <h2 class="text-xl font-bold">Torneios</h2>
+                <div class="bg-gray-900 p-4 rounded">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <input x-model="newTournament.name" placeholder="Nome do torneio" class="bg-gray-800 text-white p-2 rounded">
+                        <input x-model="newTournament.date" type="date" class="bg-gray-800 text-white p-2 rounded">
+                    </div>
+                    <button @click="createTournament" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Criar Torneio</button>
+                </div>
+                <div class="bg-gray-900 rounded">
+                    <div class="p-3 border-b border-gray-800">Nenhum torneio criado (modo offline)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
