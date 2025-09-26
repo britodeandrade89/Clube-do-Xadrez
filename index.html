@@ -1,151 +1,520 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clube de Xadrez</title>
-
-  <!-- TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Fonte -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Alpine.js -->
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <!-- Chess.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chess.js@0.12.0/chess.min.js"></script>
-
-  <!-- Manifest -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1f2937">
-
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    [x-cloak] { display: none !important; }
-    .active-tab { background-color: #FBBF24; color: #1F2937; }
-    .tab-btn { transition: background-color 0.2s, color 0.2s; }
-    .chess-board {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      width: 100%;
-      max-width: 600px;
-      aspect-ratio: 1 / 1;
-      border: 4px solid #374151;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-                  0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-    .chess-square {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: clamp(1rem, 6vw, 2.5rem);
-      cursor: pointer;
-      transition: background-color 0.2s;
-      position: relative;
-    }
-    .chess-square.light { background-color: #F0D9B5; }
-    .chess-square.dark { background-color: #B58863; }
-    .chess-square.selected { background-color: #6b9ac4 !important; }
-    .chess-square.valid-move::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 35%; height: 35%;
-      background-color: rgba(4, 120, 87, 0.6);
-      border-radius: 50%;
-    }
-    .chess-square.valid-capture::after {
-      content: '';
-      position: absolute;
-      top: 10%; left: 10%; right: 10%; bottom: 10%;
-      border: 4px solid rgba(4, 120, 87, 0.6);
-      border-radius: 50%;
-    }
-    .chess-piece { text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .sub-active-tab { background-color: #4A5568; color: white; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clube de Xadrez</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chess.js@0.12.0/chess.min.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1f2937">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
+        .active-tab { background-color: #FBBF24; color: #1F2937; }
+        .tab-btn { transition: background-color 0.2s, color 0.2s; }
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1 / 1;
+            border: 4px solid #374151;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .chess-square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 6vw, 2.5rem);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        .chess-square.light { background-color: #F0D9B5; }
+        .chess-square.dark { background-color: #B58863; }
+        .chess-square.selected { background-color: #6b9ac4 !important; }
+        .chess-square.valid-move::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 35%;
+            height: 35%;
+            background-color: rgba(4, 120, 87, 0.6);
+            border-radius: 50%;
+        }
+        .chess-square.valid-capture::after {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            right: 10%;
+            bottom: 10%;
+            border: 4px solid rgba(4, 120, 87, 0.6);
+            border-radius: 50%;
+        }
+        .chess-piece { text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .sub-active-tab { background-color: #4A5568; color: white; }
+    </style>
 </head>
-
 <body x-data="chessClub" x-init="init()" :class="{'overflow-hidden': showSplash}" class="bg-gray-800 text-gray-200">
-
-  <!-- Splash Screen -->
-  <div x-show="showSplash" x-transition.opacity class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50">
-    <svg class="w-20 h-20 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A8 8 0 014 12H0c0 3.04 1.13 5.82 3 7.94l3-2.65z"></path>
-    </svg>
-    <h1 class="text-2xl mt-4">Carregando Clube de Xadrez...</h1>
-  </div>
-
-  <!-- Main -->
-  <div x-show="!showSplash" x-cloak class="min-h-screen flex flex-col bg-gray-900">
-    <header class="bg-gray-800 shadow-lg sticky top-0 z-10">
-      <div class="container mx-auto px-4 py-4">
-        <h1 class="text-3xl font-bold text-yellow-400">Clube de Xadrez</h1>
-        <nav class="flex space-x-2 bg-gray-700 rounded-lg p-1 mt-4">
-          <button @click="activeTab = 'assiduidade'" :class="{'active-tab': activeTab === 'assiduidade'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Assiduidade</button>
-          <button @click="activeTab = 'ranking'" :class="{'active-tab': activeTab === 'ranking'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Ranking</button>
-          <button @click="activeTab = 'torneios'" :class="{'active-tab': activeTab === 'torneios'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Torneios</button>
-          <button @click="activeTab = 'jogar'" :class="{'active-tab': activeTab === 'jogar'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Jogar</button>
-        </nav>
-      </div>
-    </header>
-
-    <main class="flex-grow container mx-auto p-4 md:p-6">
-      <!-- conteúdo das abas (igual ao seu) -->
-    </main>
-  </div>
-
-  <script>
-  document.addEventListener('alpine:init', () => {
-    Alpine.data('chessClub', () => ({
-      showSplash: true,
-      activeTab: 'assiduidade',
-      today: new Date().toLocaleDateString('pt-BR'),
-
-      turmas: {},
-      activeTurma: null,
-      rankedPlayers: [],
-      tournamentPlayersInput: '',
-      generatedTournament: null,
-      chess: null,
-      board: [],
-      game: { time: { white: 300, black: 300 } },
-      gameStatus: 'Jogo pronto. Brancas movem.',
-      selectedSquare: null,
-      validMoves: [],
-      moveHistory: [],
-
-      init() {
-        console.log('App iniciado');
-        setTimeout(() => { this.showSplash = false }, 1000);
-        this.resetGame();
-      },
-
-      resetGame() {
-        this.chess = new Chess();
-        this.moveHistory = [];
-        this.updateBoard();
-      },
-
-      updateBoard() {
-        const board = this.chess.board();
-        this.board = board;
-      },
-
-      getPieceSymbol(type, color) {
-        const symbols = {
-          p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚'
-        };
-        return color === 'w' ? symbols[type].toUpperCase() : symbols[type];
-      }
-    }))
-  })
-  </script>
+    <!-- Splash Screen -->
+    <div x-show="showSplash" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50">
+        <svg class="w-20 h-20 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <h1 class="text-2xl mt-4">Carregando Clube de Xadrez...</h1>
+    </div>
+    <!-- Main Content -->
+    <div x-show="!showSplash" x-cloak x-transition:enter="transition ease-out duration-500" class="min-h-screen flex flex-col bg-gray-900">
+        <header class="bg-gray-800 shadow-lg sticky top-0 z-10">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-3xl font-bold text-yellow-400">Clube de Xadrez</h1>
+                </div>
+                <nav class="flex space-x-2 bg-gray-700 rounded-lg p-1">
+                    <button @click="activeTab = 'assiduidade'" :class="{'active-tab': activeTab === 'assiduidade'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Assiduidade</button>
+                    <button @click="activeTab = 'ranking'" :class="{'active-tab': activeTab === 'ranking'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Ranking</button>
+                    <button @click="activeTab = 'torneios'" :class="{'active-tab': activeTab === 'torneios'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Torneios</button>
+                    <button @click="activeTab = 'jogar'" :class="{'active-tab': activeTab === 'jogar'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Jogar</button>
+                </nav>
+            </div>
+        </header>
+        <main class="flex-grow container mx-auto p-4 md:p-6">
+            <!-- Assiduidade Tab -->
+            <div x-show="activeTab === 'assiduidade'">
+                <h2 class="text-3xl font-bold mb-4">Controle de Assiduidade</h2>
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <div class="flex border-b border-gray-700 mb-4 overflow-x-auto">
+                        <template x-for="turma in Object.keys(turmas)">
+                            <button @click="activeTurma = turma" :class="{'sub-active-tab': activeTurma === turma}" class="px-4 py-2 -mb-px border-b-2 border-transparent hover:border-yellow-400 focus:outline-none whitespace-nowrap" x-text="`Turma ${turma}`"></button>
+                        </template>
+                    </div>
+                    <div x-show="activeTurma" class="overflow-x-auto">
+                         <h3 class="text-xl font-semibold mb-3" x-text="`Alunos da Turma ${activeTurma}`"></h3>
+                         <table class="min-w-full bg-gray-700 rounded-lg">
+                            <thead class="bg-gray-600">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Aluno</th>
+                                    <th class="px-4 py-2 text-center w-48" x-text="`Aula de Hoje (${today})`"></th>
+                                    <th class="px-4 py-2 text-center">Total Presenças</th>
+                                    <th class="px-4 py-2 text-center">Total Faltas</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-600">
+                                <template x-for="aluno in turmas[activeTurma]" :key="aluno.nome">
+                                    <tr class="hover:bg-gray-600">
+                                        <td class="px-4 py-2" x-text="aluno.nome"></td>
+                                        <td class="px-4 py-2 text-center">
+                                            <div class="flex justify-center items-center space-x-2">
+                                                <button @click="marcarPresenca(aluno, 'P')" :class="{'bg-green-500 text-white': aluno.hoje === 'P'}" class="px-3 py-1 text-sm rounded border border-green-500 hover:bg-green-600">P</button>
+                                                <button @click="marcarPresenca(aluno, 'F')" :class="{'bg-red-500 text-white': aluno.hoje === 'F'}" class="px-3 py-1 text-sm rounded border border-red-500 hover:bg-red-600">F</button>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2 text-center text-green-400 font-semibold" x-text="aluno.presencas"></td>
+                                        <td class="px-4 py-2 text-center text-red-400 font-semibold" x-text="aluno.faltas"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                         </table>
+                    </div>
+                </div>
+            </div>
+            <!-- Ranking Tab -->
+            <div x-show="activeTab === 'ranking'">
+                <h2 class="text-3xl font-bold mb-6">Ranking Geral de Jogadores</h2>
+                <div class="overflow-x-auto bg-gray-800 rounded-lg shadow-lg">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left font-semibold">#</th>
+                                <th class="px-6 py-3 text-left font-semibold">Nome</th>
+                                <th class="px-6 py-3 text-left font-semibold">Turma</th>
+                                <th class="px-6 py-3 text-center font-semibold">Pontos</th>
+                                <th class="px-6 py-3 text-center font-semibold">Vitórias</th>
+                                <th class="px-6 py-3 text-center font-semibold">Empates</th>
+                                <th class="px-6 py-3 text-center font-semibold">Derrotas</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            <template x-for="(player, index) in rankedPlayers" :key="player.nome">
+                                <tr class="hover:bg-gray-700 transition-colors">
+                                    <td class="px-6 py-4" x-text="index + 1"></td>
+                                    <td class="px-6 py-4 font-medium" x-text="player.nome"></td>
+                                    <td class="px-6 py-4 text-gray-400" x-text="player.turma"></td>
+                                    <td class="px-6 py-4 text-center font-bold text-yellow-400" x-text="player.pontos.toFixed(1)"></td>
+                                    <td class="px-6 py-4 text-center text-green-400" x-text="player.vitorias"></td>
+                                    <td class="px-6 py-4 text-center text-blue-400" x-text="player.empates"></td>
+                                    <td class="px-6 py-4 text-center text-red-400" x-text="player.derrotas"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Torneios Tab -->
+            <div x-show="activeTab === 'torneios'">
+                <h2 class="text-3xl font-bold mb-6">Gerador de Torneios</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">Configurar Torneio</h3>
+                        <div>
+                            <label for="tournament-players" class="block mb-2 font-semibold">Lista de Jogadores (um por linha)</label>
+                            <textarea id="tournament-players" x-model="tournamentPlayersInput" class="w-full h-64 bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="Cole o nome dos jogadores aqui..."></textarea>
+                        </div>
+                        <button @click="generateTournament()" class="mt-4 w-full bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-bold py-3 px-4 rounded transition-colors">Gerar Chaves</button>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">Chaves do Torneio</h3>
+                        <div x-show="!generatedTournament">
+                             <p class="text-gray-400">As chaves e rodadas do torneio aparecerão aqui após a geração.</p>
+                        </div>
+                        <div x-show="generatedTournament" class="space-y-6">
+                            <template x-for="(group, index) in generatedTournament.groups" :key="index">
+                                <div class="bg-gray-700 p-4 rounded-lg">
+                                    <h4 class="text-lg font-bold text-yellow-400" x-text="`Grupo ${group.name}`"></h4>
+                                    <ul class="list-disc list-inside mt-2 mb-3">
+                                        <template x-for="player in group.players">
+                                            <li x-text="player"></li>
+                                        </template>
+                                    </ul>
+                                    <h5 class="font-semibold">Rodadas:</h5>
+                                    <ul class="space-y-1 mt-1 text-sm">
+                                        <template x-for="(round, roundIndex) in group.rounds" :key="roundIndex">
+                                            <li class="bg-gray-600 p-2 rounded">
+                                                <span class="font-bold" x-text="`Rodada ${roundIndex + 1}: `"></span>
+                                                <span x-text="round.matches.join(' vs ')"></span>
+                                                <span x-show="round.bye" class="italic text-gray-400" x-text="` (Descanso: ${round.bye})`"></span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Jogar Tab -->
+            <div x-show="activeTab === 'jogar'" class="flex flex-col lg:flex-row gap-8 items-start">
+                <div class="w-full lg:w-2/3">
+                    <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg mb-2 shadow-md">
+                        <span class="font-bold text-lg">Pretas</span>
+                        <span x-text="formatTime(game.time.black)" class="text-2xl font-mono bg-gray-900 px-3 py-1 rounded"></span>
+                    </div>
+                    <div class="chess-board mx-auto">
+                        <template x-for="(row, rowIndex) in board" :key="rowIndex">
+                            <template x-for="(square, colIndex) in row" :key="colIndex">
+                                <div @click="handleSquareClick(rowIndex, colIndex)" 
+                                     :class="{
+                                        'light': (rowIndex + colIndex) % 2 === 0, 
+                                        'dark': (rowIndex + colIndex) % 2 !== 0,
+                                        'selected': isSquareSelected(rowIndex, colIndex),
+                                        'valid-move': isValidMove(rowIndex, colIndex) && !isCaptureMove(rowIndex, colIndex),
+                                        'valid-capture': isValidMove(rowIndex, colIndex) && isCaptureMove(rowIndex, colIndex)
+                                     }"
+                                     class="chess-square">
+                                    <span x-show="square" x-text="getPieceSymbol(square.type, square.color)" class="chess-piece"></span>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                     <div class="flex items-center justify-between p-3 bg-gray-700 rounded-lg mt-2 shadow-md">
+                        <span class="font-bold text-lg">Brancas</span>
+                        <span x-text="formatTime(game.time.white)" class="text-2xl font-mono bg-gray-900 px-3 py-1 rounded"></span>
+                    </div>
+                </div>
+                <div class="w-full lg:w-1/3 bg-gray-800 p-4 rounded-lg space-y-4">
+                    <div>
+                        <h2 class="text-xl font-bold border-b border-gray-600 pb-2 mb-2">Status do Jogo</h2>
+                        <p x-html="gameStatus" class="mb-2 text-gray-300"></p>
+                        <button @click="resetGame()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors">Nova Partida</button>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold border-b border-gray-600 pb-2 mb-2">Anotação Algébrica</h3>
+                        <div class="bg-gray-700 rounded p-2 h-48 overflow-y-auto text-sm font-mono">
+                            <ol class="list-decimal list-inside">
+                                <template x-for="(move, index) in moveHistory" :key="index">
+                                    <li x-show="index % 2 === 0">
+                                        <span class="inline-block w-6" x-text="`${(index/2)+1}.`"></span>
+                                        <span class="font-semibold" x-text="move"></span>
+                                        <span class="ml-4" x-text="moveHistory[index+1] || ''"></span>
+                                    </li>
+                                </template>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('chessClub', () => ({
+            // App State
+            showSplash: true,
+            activeTab: 'assiduidade',
+            today: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            // Assiduidade State
+            turmas: {},
+            activeTurma: null,
+            // Ranking State
+            rankedPlayers: [],
+            // Torneios State
+            tournamentPlayersInput: '',
+            generatedTournament: null,
+            // Game State
+            chess: null,
+            board: [],
+            game: {
+                time: { white: 300, black: 300 },
+            },
+            gameStatus: 'Jogo pronto. Brancas movem.',
+            selectedSquare: null, // e.g., { row: 6, col: 4 }
+            validMoves: [],
+            moveHistory: [],
+            // --- DATA ---
+            data: {},
+            // --- METHODS ---
+            init() {
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                            console.log('Service Worker registrado com sucesso:', registration);
+                        }).catch(function(error) {
+                            console.log('Falha ao registrar o Service Worker:', error);
+                        });
+                    });
+                }
+                console.log('Initializing Chess Club...');
+                this.loadAllData();
+                this.processRanking();
+                this.processAttendance();
+                this.resetGame();
+                this.rankedPlayers.sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome));
+                const turmasKeys = Object.keys(this.turmas);
+                if (turmasKeys.length > 0) {
+                    this.activeTurma = turmasKeys[0];
+                }
+                setTimeout(() => { this.showSplash = false; }, 1000);
+            },
+            // --- DATA PROCESSING ---
+            loadAllData() {
+                this.data.presenca611 = 'Nº;NOM E;19/mar;20/mar;24/mar;31/mar;05/mai;12/mai;19/mai;02/jun;18/ago;25/ago;01/set;08/set;15/set;22/set;29/set;06/out;13/out;20/out;27/out;03/nov;10/nov;17/nov;24/nov;01/dez;08/dez;15/dez;22/dez;29/dez;05/jan;12/jan;19/jan;26/jan;02/fev;09/fev;16/fev;23/fev;02/mar;09/mar;16/mar;23/mar;PRESENÇAS;FALTAS\n1;Yasmin Faquetin;P;F;F;F;P;F;P;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;6\n2;Davi Lucca Martins Pereira;P;P;P;P;P;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;2\n3;Theo Machado;F;F;P;P;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;7\n4;Ryan Bacelar;F;P;F;F;P;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;7\n5;Otávio Pires;P;F;P;P;P;P;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;2\n6;Victor Pereira ;F;P;P;P;P;P;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;3\n7;Wagner Ferreira;F;F;P;P;F;P;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;4\n8;Danilo Felipe ;P;F;P;P;F;F;P;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;5\n9;Davi Senne;P;F;P;F;F;P;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;4\n10;Pietro Coutinho ;F;F;P;F;F;P;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;7\n11;Miguel Roberto;F;F;P;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;8\n12;Bernardo Costa;F;F;P;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;8\n13;Yasmin da Silva Melo;F;F;P;F;P;F;P;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;5\n14;Yuri Nascimento;;;;;;;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n15;Isabella Teixeira das Chagas;F;F;F;P;F;P;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;5\n16;Isadora Torres de Andrade;F;F;F;P;F;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;4\n17;Alice Caldeira de Lima ;F;F;F;P;F;P;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;6\n18;Nicolly Marques;F;F;F;F;P;F;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;7\n19;Enzo Samuel;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;0;0\n20;Nicolly Vitoria;F;F;F;P;F;P;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;5';
+                this.data.ranking611 = 'Nº;NOMES;VITÓRIAS;DERROTAS;EMPATES;PONTOS;DESEMPATE;CLASSIFICAR ;POSIÇÃO;NOME;PONTOS;;;NOTACAO ALGEBRICA;;;N;BRANCAS;PRETAS\n1;Alice Caldeira de Lima ;;;;0;0,0;2;1º;Bernardo Costa;2,5;;;K;KING ?REI;;1;e4;e5\n2;Bernardo Costa;2;1;1;2,5;2502000999,0;13;2º;Otávio Pires;2,5;;;Q;QUEEN?RAINHA;;2;Bc4;Nf6\n3;Danilo Felipe ;;;;0;0,0;9;3º;Maria Eduarda dos Santos;1,5;;;R;ROOK?TORRE;;3;BXf7+;Ke7 / KXe7\n4;Davi Lucca Martins Pereira;;;;0;0,0;11;4º;Nicolly Marques;1;;;B;BISHOP?BISPO;;4;Nh3 / Nf3 / h4;Ng4 / NXe4 / KXf7\n5;Davi Senne;;;;0;0,0;17;5º;Victor Pereira ;0,5;;;N;KNIGHT?CAVALO;;5;;RXh2\n6;Enzo Samuel;;;;0;0,0;12;6º;Nicolly Vitoria;0,5;;;?nada;PEAO;;;RgXh2;\n7;Isabella Teixeira das Chagas;;;;0;0,0;20;7º;Yasmin Faquetin;0;;;0-0;ROQUE PEQUENO;;;\n8;Isadora Torres de Andrade;;;;0;0,0;19;8º;Yasmin da Silva Melo;0;;;0-0-0;ROQUE GRANDE;;;\n9;Maria Eduarda dos Santos;1;;1;1,5;1501001000,0;18;9º;Wagner Ferreira;0;;;X;CAPTURA;;;\n10;Miguel Roberto;;;;0;0,0;16;10º;Theo Machado;0;;;+;XEQUE;;;\n11;Nicolly Marques;;;2;1;1000002000,0;15;11º;Ryan Bacelar;0;;;#;XEQUE-MATE;;;\n12;Nicolly Vitoria;;1;1;0,5;500000999,0;8;12º;Pietro Coutinho;0;;;;;;\n13;Otávio Pires;2;1;1;2,5;2502000999,0;1;13º;Davi Senne;0;;;;;;\n14;Pietro Coutinho;;;;0;0,0;5;14º;Danilo Felipe ;0;;;;;;\n15;Ryan Bacelar;;;;0;0,0;10;15º;Isadora Torres de Andrade;0;;;;;;\n16;Theo Machado;;;;0;0,0;7;16º;Isabella Teixeira das Chagas;0;;;;;;\n17;Victor Pereira ;;;1;0,5;500001000,0;4;17º;Enzo Samuel;0;;;;;;\n18;Wagner Ferreira;;;;0;0,0;6;18º;Alice Caldeira de Lima ;0;;;;;;\n19;Yasmin da Silva Melo;;;;0;0,0;3;19º;Yuri Nascimento;0;;;;;;\n20;Yasmin Faquetin;;;;0;0,0;21;20º;Miguel Roberto;0;;;;;;\n21;Yuri Nascimento;;;;0;0,0;14;21º;Davi Lucca Martins Pereira;0;;;;;;';
+                this.data.presenca612 = 'Nº;NOM E;20/mar;27/mar;31/mar;03/abr;14/abr;21/abr;28/abr;05/mai;12/mai;19/mai;29/mai;12/jun;01/set;08/set;15/set;22/set;29/set;06/out;13/out;20/out;27/out;03/nov;10/nov;17/nov;24/nov;01/dez;08/dez;15/dez;22/dez;29/dez;05/jan;12/jan;19/jan;26/jan;02/fev;09/fev;16/fev;23/fev;02/mar;09/mar;PRESENÇAS;FALTAS\n1;Lorena Militão;P;F;P;P;P;F;F;P;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n2;Thaylor Barros;P;P;F;F;F;F;P;P;F;P;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;7\n3;Raphaela Schroedler;F;P;P;P;P;F;F;P;F;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n4;Hugo Tobinaga;F;F;F;P;P;P;F;F;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n5;Myrella Fontura;F;P;P;P;P;F;F;P;F;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n6;Artur Tobinaga;F;F;P;P;F;F;P;F;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;8\n7;Miguel Araújo ;F;F;P;P;F;F;F;P;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;8\n8;Ana Beatriz;P;F;P;P;P;F;P;P;F;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8;4\n9;Jamylle Marcelo de Moraes;F;F;P;F;P;F;P;F;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;5\n10;Talita Reis;F;F;P;P;P;F;F;P;F;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n11;Maria Eduarda dos Santos Maciel;F;F;P;P;P;F;F;P;F;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n12;Hadassa Gomes Travasso;F;F;P;P;P;F;P;P;F;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;5\n13;Daniele Pereira de Oliveira;P;F;P;P;P;F;P;F;F;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;5\n14;Carlos Alexandre;F;F;F;P;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;11\n15;Alice Miranda;F;F;P;P;P;F;P;P;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8;4\n16;Agatha de Lima;P;F;P;P;P;F;F;P;P;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;5\n17;Lunna Jéssica;F;F;P;P;P;F;F;P;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;6\n18;Alex Bruneis;F;F;P;F;P;F;F;F;F;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;9\n19;Vitória Salvaya;F;F;P;P;P;F;F;F;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;8\n20;Heitor Chelles;F;F;F;F;F;F;P;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;11\n21;Jorge William de Souza Lima;F;F;P;F;F;F;F;P;F;P;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;9\n22;Maria Luiza da Costa;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n23;Henrique Cerqueira;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n24;Guilherme da Silva Alves;F;F;F;F;F;F;F;F;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;11';
+                this.data.ranking612 = 'Nº;NOMES;VITÓRIAS;DERROTAS;EMPATES;PONTOS;DESEMPATE;CLASSIFICAR ;POSIÇÃO;NOME;PONTOS;;;NOTACAO ALGEBRICA;;;N;BRANCAS;PRETAS\n1;Agatha de Lima;1;2;2;2;2001001998,0;19;1º;Raphaela Schroedler;4;;;K;KING ?REI;;1;Nc3;Nc6\n2;Alex Bruneis;;;2;1;1000002000,0;11;2º;Hugo Tobinaga;4;;;Q;QUEEN?RAINHA;;2;d4;d5\n3;Alice Miranda;2;0;1;2,5;2502001000,0;5;3º;Artur Tobinaga;3,5;;;R;ROOK?TORRE;;3;Bf4;Bf5\n4;Ana Beatriz;1;;1;1,5;1501001000,0;18;4º;Myrella Fontura;3;;;B;BISHOP?BISPO;;;\n5;Artur Tobinaga;2;1;3;3,5;3502002999,0;3;5º;Alice Miranda;2,5;;;N;KNIGHT?CAVALO;;;\n6;Carlos Alexandre;;;;0;0,0;12;6º;Jamylle Marcelo de Moraes;2;;;?nada;PEAO;;;\n7;Daniele Pereira de Oliveira;;;1;0,5;500001000,0;1;7º;Agatha de Lima;2;;;0-0;ROQUE PEQUENO;;;\n8;Guilherme da Silva Alves;;;;0;0,0;4;8º;Ana Beatriz;1,5;;;0-0-0;ROQUE GRANDE;;;\n9;Hadassa Gomes Travasso;;2;;0;-2,0;17;9º;Miguel Araújo ;1;;;X;CAPTURA;;;\n10;Heitor Chelles;;;;0;0,0;2;10º;Alex Bruneis;1;;;+;XEQUE;;;\n11;Hugo Tobinaga;4;1;0;4;4003999999,0;16;11º;Maria Eduarda dos Santos Maciel;0,5;;;#;XEQUE-MATE;;;\n12;Jamylle Marcelo de Moraes;1;1;2;2;2001001999,0;7;12º;Daniele Pereira de Oliveira;0,5;;;;;;\n13;Jorge William de Souza Lima.;;;;0;0,0;24;13º;Henrique Cerqueira;0,5;;;;;;\n14;Lorena Militão;;1;1;0,5;500000999,0;10;14º;Lunna Jéssica;0,5;;;;;;\n15;Lunna Jéssica;;;1;0,5;500001000,0;21;15º;Lorena Militão;0,5;;;;;;\n16;Maria Eduarda dos Santos Maciel;;;1;0,5;500001000,0;14;16º;Talita Reis;0;;;;;;\n17;Maria Luiza da Costa;;;;0;0,0;23;17º;Thaylor Barros;0;;;;;;\n18;Miguel Araújo ;1;1;;1;1001000999,0;22;18º;Heitor Chelles;0;;;;;;\n19;Myrella Fontura;3;;;3;3003000000,0;8;19º;Guilherme da Silva Alves;0;;;;;;\n20;Raphaela Schroedler;4;;;4;4004000000,0;20;20º;Carlos Alexandre;0;;;;;;\n21;Talita Reis;;;;0;0,0;15;21º;Hadassa Gomes Travasso;-2;;;;;;\n22;Thaylor Barros;;;;0;0,0;6;22º;Jorge William de Souza Lima.;0;;;;;;\n23;Henrique Cerqueira;;;1;0,5;500001000,0;13;23º;Maria Luiza da Costa;0;;;;;;\n24;Vitória Salvaya;;;;0;0,0;25;24º;Vitória Salvaya;0;;;;;;';
+                this.data.presenca613 = 'Nº;NOM E;19/mar;28/mar;09/mai;16/mai;23/mai;13/jun;04/jul;22/ago;29/ago;05/set;12/set;19/set;26/set;03/out;10/out;17/out;24/out;31/out;07/nov;14/nov;21/nov;28/nov;05/dez;12/dez;19/dez;26/dez;02/jan;09/jan;16/jan;23/jan;30/jan;06/fev;13/fev;20/fev;27/fev;06/mar;13/mar;20/mar;27/mar;03/abr;PRESENÇAS;FALTAS\n1;Agatha Silva;;;P;P;;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;0\n2;Alice do Nascimento;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n3;Aysha Vitoria;;;;;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n4;Davi Lucca Santos Mendonça;P;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;3\n5;Edgar de Carvalho Rodrigues;P;F;F;P;;;;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;2\n6;Eduarda Moreira;P;P;P;F;;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;1\n7;Emanuelly Menezes de Oliveira;P;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;3\n8;Ian Carlos da Silva Nascimento;P;P;F;P;P;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;1\n9;Jefferson Nery;P;P;F;P;P;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;1\n10;Jefferson Santos;P;P;P;F;;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;1\n11;Joyce de Souza;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n12;Julia Labre Mathias;P;P;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;0\n13;Ketelen Julia;;;P;;P;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;0\n14;Larissa Sales;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n15;Lucas Neres;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;0\n16;Luíza Araújo;P;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;0\n17;Manuela de Souza;P;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;0\n18;Murillo Toste de Souza;P;P;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;1\n19;Pietra Fernandes;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n20;Rafaelle Pessanha;P;P;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;1\n21;Yago dos Anjos;;;;;;;;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;0\n22;Gabriel Vivas Rosa;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;0';
+                this.data.ranking613 = 'Nº;NOMES;VITÓRIAS;DERROTAS;EMPATES;PONTOS;DESEMPATE;CLASSIFICAR ;POSIÇÃO;NOME;PONTOS;;;NOTACAO ALGEBRICA;;;N;BRANCAS;PRETAS\n1;Agatha Silva;;;1;0,5;500001000,0;22;1º;ANDRE BRITO;45;;;K;KING ?REI;;1;\n2;Alice do Nascimento;;;;0;0,0;15;2º;Lucas Neres;11;;;Q;QUEEN?RAINHA;;2;\n3;Aysha Vitoria;;5;;0;-5,0;12;3º;Julia Labre Mathias;11;;;R;ROOK?TORRE;;3;\n4;Davi Lucca Santos Mendonça;;;;0;0,0;10;4º;Jefferson Santos;6,5;;;B;BISHOP?BISPO;;;\n5;Edgar de Carvalho Rodrigues;1;3;2;2;2001001997,0;18;5º;Murillo Toste de Souza;4,5;;;N;KNIGHT?CAVALO;;;\n6;Eduarda Moreira;;;;0;0,0;9;6º;Jefferson Nery;3;;;?nada;PEAO;;;\n7;Emanuelly Menezes de Oliveira;;;;0;0,0;5;7º;Edgar de Carvalho Rodrigues;2;;;0-0;ROQUE PEQUENO;;;\n8;Ian Carlos da Silva Nascimento;;1;;0;-1,0;13;8º;Larissa Sales;1,5;;;0-0-0;ROQUE GRANDE;;;\n9;Jefferson Nery;3;2;;3;3002999998,0;21;9º;Yago dos Anjos;1;;;X;CAPTURA;;;\n10;Jefferson Santos;5;3;3;6,5;6505002997,0;1;10º;Agatha Silva;0,5;;;+;XEQUE;;;\n11;Joyce de Souza;;;;0;0,0;20;11º;Rafaelle Pessanha;0;;;#;XEQUE-MATE;;;\n12;Julia Labre Mathias;10;;2;11;11010002000,0;19;12º;Pietra Fernandes;0;;;;;;\n13;Larissa Sales;1;;1;1,5;1501001000,0;17;13º;Manuela de Souza ;0;;;;;;\n14;Lucas Neres;11;2;;11;11011000998,0;16;14º;Luíza Araújo;0;;;;;;\n15;Luíza Araújo;;;;0;0,0;14;15º;Lucas Neres;0;;;;;;\n16;Manuela de Souza ;;;;0;0,0;11;16º;Ketelen Julia;0;;;;;;\n17;Murillo Toste de Souza;3;;3;4,5;4503003000,0;4;17º;Ian Carlos da Silva Nascimento;-1;;;;;;\n18;Pietra Fernandes;;;;0;0,0;8;18º;Emanuelly Menezes de Oliveira;0;;;;;;\n19;Rafaelle Pessanha;;;;0;0,0;7;19º;Eduarda Moreira;0;;;;;;\n20;Yago dos Anjos;1;1;;1;1001000999,0;3;20º;Davi Lucca Santos Mendonça;0;;;;;;\n21;Gabriel Vivas Rosa;;;;0;0,0;2;21º;Aysha Vitoria;-5;;;;;;\n22;;;;;;;6;22º;Alice do Nascimento;0;;;;;;';
+                this.data.presenca621 = 'Nº;NOM E;20/mar;21/mar;26/mar;27/mar;28/mar;03/abr;11/abr;14/abr;12/mai;19/mai;26/mai;02/jun;09/jun;16/jun;23/jun;30/jun;07/jul;14/jul;21/jul;28/jul;04/ago;11/ago;18/ago;25/ago;01/set;08/set;15/set;22/set;29/set;06/out;13/out;20/out;27/out;03/nov;10/nov;17/nov;24/nov;01/dez;08/dez;15/dez;PRESENÇAS;FALTAS\n1;Luiz Fellipe Silva Miranda;P;F;F;F;P;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;5\n2;Lincoln Lopes ;P;F;P;P;F;P;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;4\n3;Émerson Menezes ;P;F;P;P;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;6\n4;Pedro Nicolas da Silva;P;P;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;7\n5;Pedro Henrique da Conceição;P;P;F;P;F;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;5\n6;Yan Fonseca;F;P;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;8\n7;Arthur de Paula Carvalho;P;P;P;F;F;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;4\n8;João Pedro Fidélis da Silva;F;P;P;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;7\n9;Davi Lucas Ribeiro;F;F;P;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;8\n10;Esther da Silva Lopes;F;P;P;F;F;F;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;6\n11;Pedro Miguel ;P;P;P;P;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;9;0\n12;Wanderson da Silva Gonçalves ;P;P;P;P;P;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;2\n13;Matheus Figueiredo de Oliveira;F;F;P;F;F;F;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;7\n14;Kethllen Manuella;P;P;P;P;P;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8;1\n15;Kalyla Vitória da Silva de Souza;F;P;P;F;P;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;4\n16;Ana Julia Rangel;F;F;F;F;F;F;F;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;8\n17;Miguel Neves;P;P;P;P;P;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8;1';
+                this.data.ranking621 = 'Nº;NOMES;VITÓRIAS;DERROTAS;EMPATES;PONTOS;DESEMPATE;CLASSIFICAR ;POSIÇÃO;NOME;PONTOS;;;NOTACAO ALGEBRICA;;;N;BRANCAS;PRETAS\n1;Ana Julia Rangel;;;;0;0,0;5;1º;Esther da Silva Lopes;2;;;K;KING ?REI;;1;Nc3;Nc6\n2;Arthur de Paula Carvalho;;;;0;0,0;12;2º;Miguel Neves;2;;;Q;QUEEN?RAINHA;;2;d4;d5\n3;Davi Lucas Ribeiro;;;;0;0,0;10;3º;Luiz Fellipe Silva Miranda;2;;;R;ROOK?TORRE;;3;Bf4;Bf5\n4;Émerson Menezes ;;3;;0;-3,0;17;4º;Yan Fonseca;0;;;B;BISHOP?BISPO;;;\n5;Esther da Silva Lopes;2;;;2;2002000000,0;16;5º;Wanderson da Silva Gonçalves ;0;;;N;KNIGHT?CAVALO;;;\n6;João Pedro Fidélis da Silva;;;;0;0,0;15;6º;Pedro Nicolas da Silva;0;;;?nada;PEAO;;;\n7;Kalyla Vitória da Silva de Souza;;;;0;0,0;14;7º;Pedro Miguel ;0;;;0-0;ROQUE PEQUENO;;;\n8;Kethllen Manuella;;;;0;0,0;13;8º;Pedro Henrique da Conceição;0;;;0-0-0;ROQUE GRANDE;;;\n9;Lincoln Lopes ;;;;0;0,0;11;9º;Matheus Figueiredo de Oliveira;0;;;X;CAPTURA;;;\n10;Luiz Fellipe Silva Miranda;2;2;;2;2001999998,0;9;10º;Lincoln Lopes ;0;;;+;XEQUE;;;\n11;Matheus Figueiredo de Oliveira;;;;0;0,0;8;11º;Kethllen Manuella;0;;;#;XEQUE-MATE;;;\n12;Miguel Neves;2;1;;2;2001999999,0;7;12º;Kalyla Vitória da Silva de Souza;0;;;;;;\n13;Pedro Henrique da Conceição;;;;0;0,0;6;13º;João Pedro Fidélis da Silva;0;;;;;;\n14;Pedro Miguel ;;;;0;0,0;4;14º;Émerson Menezes ;-3;;;;;;\n15;Pedro Nicolas da Silva;;;;0;0,0;3;15º;Davi Lucas Ribeiro;0;;;;;;\n16;Wanderson da Silva Gonçalves ;;;;0;0,0;2;16º;Arthur de Paula Carvalho;0;;;;;;\n17;Yan Fonseca;;;;0;0,0;1;17º;Ana Julia Rangel;0;;;;;;';
+                this.data.presenca622 = 'Nº;NOM E;20/mar;21/mar;27/mar;31/mar;03/abr;14/abr;24/abr;15/mai;22/mai;29/mai;05/jun;12/jun;07/ago;18/ago;21/ago;25/ago;28/ago;04/set;11/set;18/set;25/set;02/out;09/out;16/out;23/out;30/out;06/nov;13/nov;20/nov;27/nov;04/dez;11/dez;18/dez;25/dez;01/jan;08/jan;15/jan;22/jan;29/jan;05/fev;PRESENÇAS;FALTAS\n17;Alice Victoria;F;F;F;F;F;F;F;F;F;F;P;F;P;F;F;F;P;P;P;;;;;;;;;;;;;;;;;;;;;;5;14\n9;Ana Julia Goulart ;F;F;P;F;F;F;P;F;F;F;F;F;F;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;7;12\n18;Anne Vieira;F;F;F;F;F;P;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n2;Bruno Junqueira;F;F;P;F;P;P;F;F;F;F;P;F;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;8;11\n21;Davi Marques;F;F;F;P;P;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;2;16\n23;Dominic de Albuquerque;F;F;P;F;F;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n13;Emanuelly Paixão;F;F;F;F;P;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n8;Érick Patrick da Silva Trindade;F;P;P;F;P;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;3;15\n1;Felipe Araújo;P;F;F;F;F;F;P;P;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;3;15\n6;Gabriel do Nascimento;P;F;F;P;P;P;F;P;P;P;F;P;F;P;P;P;F;P;P;;;;;;;;;;;;;;;;;;;;;;13;6\n19;Giovanna Netto;F;F;F;F;P;F;F;F;F;F;F;F;F;P;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;2;16\n5;Guilherme Santos;P;F;P;P;P;F;P;P;F;F;P;P;P;F;P;F;F;F;;;;;;;;;;;;;;;;;;;;;;;10;8\n12;Hagata Guimarães ;F;F;F;F;P;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n10;Heitor Araújo ;F;F;P;F;F;F;F;F;F;P;F;F;F;P;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;3;15\n20;Isaias Alexsander;F;F;F;F;P;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n14;Laura Soares;F;F;F;F;P;F;F;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n15;Lívia Cabral;F;F;P;F;P;F;F;F;F;F;F;F;P;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;3;15\n4;Luis Eduardo Correa Farias;F;F;P;F;F;F;F;F;F;F;P;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;2;16\n16;Luisa Soares;F;F;F;F;F;F;P;F;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;1;17\n3;Matheus Figueiredo ;F;F;P;P;F;F;F;F;F;P;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;3;15\n7;Melina da Costa;F;F;F;F;F;P;P;F;F;F;F;F;F;F;F;F;P;P;;;;;;;;;;;;;;;;;;;;;;;4;14\n11;Miguel Porcino da Silva;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;18;0\n22;Tiago Ferreira;F;F;F;P;P;P;P;P;F;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;5;13';
+                this.data.ranking622 = 'Nº;NOMES;VITÓRIAS;DERROTAS;EMPATES;PONTOS;DESEMPATE;CLASSIFICAR ;POSIÇÃO;NOME;PONTOS;;;NOTACAO ALGEBRICA;;;N;BRANCAS;PRETAS\n1;Alice Vitória;2;4;2;3;3002001996,0;2;1º;Ana Julia Goulart ;8;;;K;KING ?REI;;1;Nc3;Nc6\n2;Ana Julia Goulart ;6;2;4;8;8006003998,0;9;2º;Gabriel do Nascimento;8;;;Q;QUEEN?RAINHA;;2;d4;d5\n3;Anne Vieira;;1;1;0,5;500000999,0;4;3º;Bruno Junqueira;6;;;R;ROOK?TORRE;;3;Bf4;Bf5\n4;Bruno Junqueira;5;1;2;6;6005001999,0;21;4º;Miguel Porcino da Silva;6;;;B;BISHOP?BISPO;;;\n5;Davi Marques;;;;0;0,0;11;5º;Guilherme Santos;4,5;;;N;KNIGHT?CAVALO;;;\n6;Emanuelly Paixão;;;;0;0,0;1;6º;Alice Vitória;3;;;?nada;PEAO;;;\n7;Érick Patrick da Silva Trindade;;;;0;0,0;16;7º;Lívia Cabral;2;;;0-0;ROQUE PEQUENO;;;\n8;Felipe Araújo;;;;0;0,0;20;8º;Melina da Costa;1,5;;;0-0-0;ROQUE GRANDE;;;\n9;Gabriel do Nascimento;4;6;8;8;8004007994,0;19;9º;Matheus Figueiredo ;1;;;X;CAPTURA;;;\n10;Giovanni Netto;;;;0;0,0;22;10º;Dominic de Albuquerque;1;;;+;XEQUE;;;\n11;Guilherme Santos;2;3;5;4,5;4502004997,0;17;11º;Luis Eduardo Correa Farias;0,5;;;#;XEQUE-MATE;;;\n12;Hagata Guimarães ;;;;0;0,0;3;12º;Anne Vieira;0,5;;;;;;\n13;Heitor Araújo ;;;;0;0,0;5;13º;Tiago Ferreira;0;;;;;;\n14;Isaias Alexsander;;;;0;0,0;6;14º;Hagata Guimarães ;0;;;;;;\n15;Laura Soares;;;;0;0,0;7;15º;Emanuelly Paixão;0;;;;;;\n16;Lívia Cabral;1;3;2;2;2001001997,0;8;16º;Felipe Araújo;0;;;;;;\n17;Luis Eduardo Correa Farias;;1;1;0,5;500000999,0;10;17º;Érick Patrick da Silva Trindade;0;;;;;;\n18;Luisa Soares;;;;0;0,0;12;18º;Heitor Araújo ;0;;;;;;\n19;Matheus Figueiredo ;;1;2;1;1000001999,0;13;19º;Isaias Alexsander;0;;;;;;\n20;Melina da Costa;1;1;1;1,5;1501000999,0;14;20º;Laura Soares;0;;;;;;\n21;Miguel Porcino da Silva;6;2;0;6;6006000000,0;15;21º;Luisa Soares;0;;;;;;\n22;Tiago Ferreira;;;;0;0,0;18;22º;Giovanni Netto;0;;;;;;\n23;Dominic de Albuquerque;1;1;;1;1001000999,0;23;23º;Davi Marques;0;;;;;;';
+                this.data.presenca623 = 'Nº;NOM E;21/mar;28/mar;04/abr;11/abr;09/mai;16/mai;23/mai;30/mai;06/jun;22/ago;05/set;12/set;19/set;26/set;03/out;10/out;17/out;24/out;31/out;07/nov;14/nov;21/nov;28/nov;05/dez;12/dez;19/dez;26/dez;02/jan;09/jan;16/jan;23/jan;30/jan;06/fev;13/fev;20/fev;27/fev;06/mar;13/mar;20/mar;27/mar;PRESENÇAS;FALTAS\n1;Ana Heloiza Marcolina Porto;P;F;F;F;F;F;F;F;F;F;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;9\n2;Cauã Lanor;F;F;P;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;10\n3;Emilly da Silva;F;P;P;P;P;P;P;P;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;7;4\n4;Gabriella Sofia ;F;P;P;P;P;P;P;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;6;5\n5;Henrique Siqueira;P;P;P;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;8\n6;Lucas Melo;F;P;F;F;P;F;P;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;8\n7;Maria Eduarda Costa;;F;P;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1;9\n8;Maria Roberta;F;F;P;F;P;P;F;F;P;P;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;6\n9;Mateus Messias Venâncio Lima;P;P;P;P;P;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;5;6\n10;Matheus Miguel;P;P;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;9\n11;Miguel Ferreira dos Santos;P;P;F;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;9\n12;Mirella Felix;F;P;P;P;F;P;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;7\n13;Moisés Rodrigues ;P;P;P;P;P;P;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;11;0\n14;Mykaella Oliveira;P;P;P;P;P;P;P;P;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8;3\n15;Nicolas Aparício;P;P;P;P;P;P;P;P;P;P;P;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;11;0\n16;Pyetro Miguel Prates;F;P;P;P;P;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;4;7\n17;Thaune Rodrigues;P;P;P;F;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3;8\n18;Yago dos Anjos Silva;F;F;P;P;F;F;F;F;F;F;F;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2;9';
+                this.data.ranking623 = 'Nº;NOMES;VITÓRIAS;DERROTAS;EMPATES;PONTOS;DESEMPATE;CLASSIFICAR ;POSIÇÃO;NOME;PONTOS;;;NOTACAO ALGEBRICA;;;N;BRANCAS;PRETAS\n1;Ana Heloiza Marcolina Porto;;;;0;0,0;14;1º;Nicolas Aparício ;4;;;K;KING ?REI;;1;e4;e5\n2;Cauã Lanor;;;;0;0,0;12;2º;Moisés Rodrigues ;2,5;;;Q;QUEEN?RAINHA;;2;Nf3;Nc6\n3;Emilly da Silva;;2;3;1,5;1500002998,0;10;3º;Matheus Miguel;1,5;;;R;ROOK?TORRE;;3;Bc4;Nf6\n4;Gabriella Sofia ;;;2;1;1000002000,0;3;4º;Emilly da Silva;1,5;;;B;BISHOP?BISPO;;4;Ng5;\n5;Henrique Siqueira;;;;0;0,0;7;5º;Maria Eduarda Costa;1;;;N;KNIGHT?CAVALO;;5;\n6;Lucas Melo;;;;0;0,0;4;6º;Gabriella Sofia ;1;;;?nada;PEAO;;6;\n7;Maria Eduarda Costa;;;2;1;1000002000,0;13;7º;Mykaella Oliveira;1;;;0-0;ROQUE PEQUENO;;7;\n8;Maria Roberta;;;;0;0,0;18;8º;Yago dos Anjos Silva;0;;;0-0-0;ROQUE GRANDE;;8;\n9;Mateus Messias Venâncio Lima;;;;0;0,0;16;9º;Thaune Rodrigues;0;;;X;CAPTURA;;9;\n10;Matheus Miguel;1;1;1;1,5;1501000999,0;15;10º;Pyetro Miguel Prates;0;;;+;XEQUE;;10;\n11;Mirella Felix;;;;0;0,0;11;11º;Mirella Felix;0;;;#;XEQUE-MATE;;11;\n12;Moisés Rodrigues ;1;;3;2,5;2501003000,0;9;12º;Mateus Messias Venâncio Lima;0;;;;;;\n13;Mykaella Oliveira;;1;2;1;1000001999,0;8;13º;Miguel Ferreira dos Santos;0;;;;;;\n14;Nicolas Aparício ;4;;;4;4004000000,0;6;14º;Maria Roberta;0;;;;;;\n15;Pyetro Miguel Prates;;;;0;0,0;5;15º;Lucas Melo;0;;;;;;\n16;Thaune Rodrigues;;;;0;0,0;2;16º;Henrique Siqueira;0;;;;;;\n17;Yago dos Anjos Silva;;;;0;0,0;1;17º;Cauã Lanor;0;;;;;;\n18;;;;;;;17;18º;Ana Heloiza Marcolina Porto;0;;;;;;';
+            },
+            processRanking() {
+                const todos = [];
+                for (const turmaCod in this.data) {
+                    if (turmaCod.startsWith('ranking')) {
+                        const turma = turmaCod.replace('ranking', '');
+                        const data = this.data[turmaCod];
+                        const lines = data.split('\n').slice(1);
+                        for (const line of lines) {
+                            const parts = line.split(';');
+                            if (parts.length > 5 && parts[1]) {
+                                const nome = parts[1].trim();
+                                const vitorias = parseInt(parts[2]) || 0;
+                                const derrotas = parseInt(parts[3]) || 0;
+                                const empates = parseInt(parts[4]) || 0;
+                                const pontos = (vitorias * 1) + (empates * 0.5);
+                                if(nome) {
+                                    todos.push({ nome, turma, vitorias, derrotas, empates, pontos });
+                                }
+                            }
+                        }
+                    }
+                }
+                // Remove duplicates, keeping the one with highest score
+                const uniquePlayers = {};
+                todos.forEach(p => {
+                    if (!uniquePlayers[p.nome] || uniquePlayers[p.nome].pontos < p.pontos) {
+                        uniquePlayers[p.nome] = p;
+                    }
+                });
+                this.rankedPlayers = Object.values(uniquePlayers);
+            },
+            processAttendance() {
+                 for (const turmaCod in this.data) {
+                    if (turmaCod.startsWith('presenca')) {
+                        const turma = turmaCod.replace('presenca', '');
+                        this.turmas[turma] = [];
+                        const data = this.data[turmaCod];
+                        const lines = data.split('\n').slice(1);
+                        for (const line of lines) {
+                             const parts = line.split(';');
+                             if (parts.length > 2 && parts[1]) {
+                                const nome = parts[1].trim();
+                                if (nome) {
+                                    // Handle inconsistent line endings and find last two numbers
+                                    const cleanedParts = parts.map(p => p.trim()).filter(p => p !== '');
+                                    const faltas = parseInt(cleanedParts[cleanedParts.length - 1]) || 0;
+                                    const presencas = parseInt(cleanedParts[cleanedParts.length - 2]) || 0;
+                                    this.turmas[turma].push({ nome, presencas, faltas, hoje: null });
+                                }
+                             }
+                        }
+                    }
+                 }
+            },
+            marcarPresenca(aluno, status) {
+                // This logic is simplified, in a real app you'd save this to a database
+                if (aluno.hoje === status) { // Desmarcar
+                    if(status === 'P') aluno.presencas--;
+                    if(status === 'F') aluno.faltas--;
+                    aluno.hoje = null;
+                } else { // Marcar ou trocar
+                    if(aluno.hoje === 'P') aluno.presencas--;
+                    if(aluno.hoje === 'F') aluno.faltas--;
+                    if(status === 'P') aluno.presencas++;
+                    if(status === 'F') aluno.faltas++;
+                    aluno.hoje = status;
+                }
+            },
+            // --- TORNEIOS ---
+            generateTournament() {
+                const players = this.tournamentPlayersInput.split('\n').map(p => p.trim()).filter(p => p);
+                if (players.length < 3) {
+                    alert("São necessários pelo menos 3 jogadores.");
+                    return;
+                }
+                const shuffle = (array) => array.sort(() => Math.random() - 0.5);
+                const shuffledPlayers = shuffle(players);
+                let groups = [];
+                if (players.length <= 5 || players.length === 7) {
+                    groups.push({ name: 'A', players: shuffledPlayers });
+                } else { // 6, 8, or more
+                     const numGroups = Math.floor(players.length / 6) > 1 ? Math.floor(players.length / 5) : (players.length > 5 ? 2 : 1);
+                     const baseGroupSize = Math.floor(players.length / numGroups);
+                     let remainder = players.length % numGroups;
+                     let currentIdx = 0;
+                     for (let i = 0; i < numGroups; i++) {
+                         let size = baseGroupSize + (remainder > 0 ? 1 : 0);
+                         groups.push({
+                             name: String.fromCharCode(65 + i),
+                             players: shuffledPlayers.slice(currentIdx, currentIdx + size)
+                         });
+                         currentIdx += size;
+                         if (remainder > 0) remainder--;
+                     }
+                }
+                groups.forEach(group => {
+                    group.rounds = this.generateRounds(group.players);
+                });
+                this.generatedTournament = { groups };
+            },
+            generateRounds(players) {
+                const rounds = [];
+                let playersCopy = [...players];
+                if (playersCopy.length % 2 !== 0) {
+                    playersCopy.push(null); // Bye player placeholder
+                }
+                const numRounds = playersCopy.length - 1;
+                const numPlayers = playersCopy.length;
+                for (let r = 0; r < numRounds; r++) {
+                    const round = { matches: [], bye: null };
+                    for (let i = 0; i < numPlayers / 2; i++) {
+                        const player1 = playersCopy[i];
+                        const player2 = playersCopy[numPlayers - 1 - i];
+                        if (player1 === null) round.bye = player2;
+                        else if (player2 === null) round.bye = player1;
+                        else round.matches.push([player1, player2]);
+                    }
+                    rounds.push(round);
+                    // Rotate players for next round
+                    playersCopy.splice(1, 0, playersCopy.pop());
+                }
+                return rounds;
+            },
+            // --- GAME LOGIC ---
+            resetGame() {
+                this.chess = new Chess();
+                this.updateBoard();
+                this.gameStatus = "Nova partida. Brancas movem.";
+                this.selectedSquare = null;
+                this.validMoves = [];
+                this.moveHistory = [];
+            },
+            updateBoard() {
+                this.board = this.chess.board();
+                 const turn = this.chess.turn() === 'w' ? 'Brancas' : 'Pretas';
+                if (this.chess.isCheckmate()) {
+                    this.gameStatus = `<strong>Xeque-mate!</strong> ${turn === 'Brancas' ? 'Pretas' : 'Brancas'} vencem.`;
+                } else if (this.chess.isDraw()) {
+                    this.gameStatus = "<strong>Empate!</strong> O jogo terminou em empate.";
+                } else {
+                    this.gameStatus = `Vez das <strong>${turn}</strong>.`;
+                    if (this.chess.isCheck()) {
+                        this.gameStatus += ' <span class="text-red-400">Você está em xeque!</span>';
+                    }
+                }
+                this.moveHistory = this.chess.history();
+            },
+            handleSquareClick(row, col) {
+                if(this.chess.isGameOver()) return;
+                const squareName = this.getSquareName(row, col);
+                if (this.selectedSquare) {
+                    const move = {
+                        from: this.getSquareName(this.selectedSquare.row, this.selectedSquare.col),
+                        to: squareName,
+                        promotion: 'q' // Always promote to queen for simplicity
+                    };
+                    const result = this.chess.move(move);
+                    if (result) {
+                        this.updateBoard();
+                    }
+                    this.selectedSquare = null;
+                    this.validMoves = [];
+                } else {
+                    const piece = this.chess.get(squareName);
+                    if (piece && piece.color === this.chess.turn()) {
+                        this.selectedSquare = { row, col };
+                        this.validMoves = this.chess.moves({ square: squareName, verbose: true });
+                    }
+                }
+            },
+            getSquareName(row, col) {
+                return 'abcdefgh'[col] + (8 - row);
+            },
+            isSquareSelected(row, col) {
+                return this.selectedSquare && this.selectedSquare.row === row && this.selectedSquare.col === col;
+            },
+            isValidMove(row, col) {
+                const squareName = this.getSquareName(row, col);
+                return this.validMoves.some(move => move.to === squareName);
+            },
+            isCaptureMove(row, col){
+                const squareName = this.getSquareName(row, col);
+                return this.validMoves.some(move => move.to === squareName && move.flags.includes('c'));
+            },
+            getPieceSymbol(type, color) {
+                const symbols = {
+                    p: { w: '♙', b: '♟︎' }, r: { w: '♖', b: '♜' },
+                    n: { w: '♘', b: '♞' }, b: { w: '♗', b: '♝' },
+                    q: { w: '♕', b: '♛' }, k: { w: '♔', b: '♚' }
+                };
+                return symbols[type][color];
+            },
+            formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+        }));
+    });
+    </script>
 </body>
 </html>
