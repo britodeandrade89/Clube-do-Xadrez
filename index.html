@@ -1,737 +1,151 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Club App</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.10/dist/cdn.min.js" defer></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#050a14">
-    <style>
-        body, html { font-family: 'Inter', sans-serif; background-color: #050a14; color: #e0e0e0; height: 100%; margin: 0; padding: 0; }
-        .app-container[x-data] { height: 100vh; display: flex; flex-direction: column; }
-        [x-cloak] { display: none !important; }
-        .piece-white { fill: #ffffff; stroke: #333; stroke-width: 1.5; }
-        .piece-black { fill: #2c2c2c; stroke: #ccc; stroke-width: 1.5; }
-        .splash-screen {
-            background-color: #050a14;
-            cursor: pointer;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 9999;
-        }
-        .main-app-content {
-             flex-grow: 1;
-             overflow-y: auto;
-        }
-        #chessboard {
-            width: 100%;
-            max-width: 500px;
-            aspect-ratio: 1 / 1;
-            border: 2px solid #333;
-            margin: 0 auto;
-        }
-        #chessboard > div {
-            display: flex;
-            aspect-ratio: 1 / 1;
-            position: relative;
-        }
-        .notation-file {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 10px;
-            color: rgba(255,255,255,0.5);
-        }
-        .notation-rank {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            font-size: 10px;
-            color: rgba(255,255,255,0.5);
-        }
-        .attendance-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-        .attendance-table th, .attendance-table td {
-            padding: 6px;
-            text-align: left;
-            border-bottom: 1px solid #333;
-        }
-        .status-P { background-color: #065f46; }
-        .status-F { background-color: #7f1d1d; }
-        /* Modern pieces */
-        .modern-piece {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            line-height: 1;
-        }
-        .modern-white { color: #ffffff; }
-        .modern-black { color: #2c2c2c; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clube de Xadrez</title>
+
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonte -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Chess.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chess.js@0.12.0/chess.min.js"></script>
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1f2937">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    [x-cloak] { display: none !important; }
+    .active-tab { background-color: #FBBF24; color: #1F2937; }
+    .tab-btn { transition: background-color 0.2s, color 0.2s; }
+    .chess-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: 100%;
+      max-width: 600px;
+      aspect-ratio: 1 / 1;
+      border: 4px solid #374151;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                  0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .chess-square {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1rem, 6vw, 2.5rem);
+      cursor: pointer;
+      transition: background-color 0.2s;
+      position: relative;
+    }
+    .chess-square.light { background-color: #F0D9B5; }
+    .chess-square.dark { background-color: #B58863; }
+    .chess-square.selected { background-color: #6b9ac4 !important; }
+    .chess-square.valid-move::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 35%; height: 35%;
+      background-color: rgba(4, 120, 87, 0.6);
+      border-radius: 50%;
+    }
+    .chess-square.valid-capture::after {
+      content: '';
+      position: absolute;
+      top: 10%; left: 10%; right: 10%; bottom: 10%;
+      border: 4px solid rgba(4, 120, 87, 0.6);
+      border-radius: 50%;
+    }
+    .chess-piece { text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .sub-active-tab { background-color: #4A5568; color: white; }
+  </style>
 </head>
-<body x-data="{showSplash: true}" :class="{'overflow-hidden': showSplash}">
-    <!-- SVG Piece Definitions -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-        <symbol id="pawn" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.63V6M20 8h5" stroke-width="1.5" /><path d="M22.5 25c4.418 0 8-3.582 8-8 0-4.418-3.582-8-8-8-4.418 0-8 3.582-8 8 0 4.418 3.582 8 8 8z" stroke-width="1.2" /><path d="M22.5 25c-4.418 0-8 1.5-8 4v2h16v-2c0-2.5-3.582-4-8-4z" stroke-width="1.2" /><path d="M14.5 31v5.5h16V31" /><path d="M11.5 39.5h22" stroke-width="2" /></g></symbol>
-        <symbol id="rook" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zM12 36v-4h21v4H12zM11 14V9h4v2h5V9h5v2h5V9h4v5" stroke-width="1.5"/><path d="M34 14l-3 3H14l-3-3" /><path d="M31 17v12.5H14V17" /><path d="M31 29.5l1.5 2.5h-20l1.5-2.5" /><path d="M14 17h17" stroke-width="2.5" /></g></symbol>
-        <symbol id="knight" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10c1.333-1.333 1.333-3.333 0-5 1.333 1.667 2.333 4 .333 6.333-2 2.333-4.333 2-6.333 2 .667-1.333 1.667-3.333 2.667-5.333-1 2-1.667 3.667-2.667 5.333-1.333 0-2.667-1.333-4-4-1.333 2.667-1.333 5.333.667 8 .667 1.333 2 2.333 4 3 .667 2 1.667 4 3 6 2.667 2.667 6.333 3.667 11 3 2.667-2 3.333-4.333 4-7 .667-2.667 0-5-1-7-1-2-2.333-3.667-4-5-1.667-1.333-3.667-2-6-2z" stroke-width="1.5" /><path d="M25 32c-2.667 1.333-5.333 2-8 2-2.667 0-5-1-7-3-1.333-2-2-4.333-2-7 0-2 .667-4 2-6 .667-1.333 1.667-2.333 3-3" stroke-width="1.5" /><path d="M15 39.5s1 1 3 1 4-1 4-1" stroke-width="2"/></g></symbol>
-        <symbol id="bishop" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zM15 36v-4h15v4H15zM12 32l4-4h13l4 4H12z" /><path d="M22.5 8c-1.424 0-2.5 2.5-2.5 4.5 0 2 1.076 4.5 2.5 4.5s2.5-2.5 2.5-4.5c0-2-1.076-4.5-2.5-4.5z" /><path d="M22.5 17c-2.5 0-4.5 2-4.5 4.5V26h9v-4.5c0-2.5-2-4.5-4.5-4.5z" /><path d="M18 26h9" stroke-width="2.5" /></g></symbol>
-        <symbol id="queen" viewBox="0 0 45 45"><path d="M8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM17 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM25 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM33 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM41 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" /><path d="M8 12s2 6 2 8c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 2-8 2-8" /><path d="M17 12s2 6 2 8c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 2-8 2-8" /><path d="M25 9s1 7 1 9c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 1-9 1-9" /><path d="M33 12s2 6 2 8c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 2-8 2-8" /><path d="M9 26c1.5-1 3.5-1.5 6.5-1.5 3 0 5 .5 6.5 1.5" stroke-width="1.2" /><path d="M9 26c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 1-5 1-5" /><path d="M15 21s1 5 1 5c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0 0 1-5 1-5" /><path d="M24 21s1 5 1 5c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0 0 1-5 1-5" /><path d="M30 21s1 5 1 5c0 2 1.5 3 1.5 3s1.5-1 1.5-3c0-2 1-5 1-5" /><path d="M36 26c0 2-1.5 3-1.5 3s-1.5-1-1.5-3c0-2-1-5-1-5" /><path d="M9 39h27v-3H9v3zM12 36v-4h21v4H12z" /><path d="M12 32s1.5-1.5 3-1.5 15 0 15 0 1.5 1.5 3 1.5" stroke-width="1.2" /></symbol>
-        <symbol id="king" viewBox="0 0 45 45"><g fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.5V6M20 8h5" stroke-width="1.5"/><path d="M22.5 25c4.418 0 8-3.582 8-8 0-4.418-3.582-8-8-8-4.418 0-8 3.582-8 8 0 4.418 3.582 8 8 8z" stroke-width="1.2" /><path d="M22.5 25c-4.418 0-8 1.5-8 4v2h16v-2c0-2.5-3.582-4-8-4z" stroke-width="1.2" /><path d="M14.5 31v5.5h16V31" /><path d="M11.5 39.5h22" stroke-width="2" /><path d="M20 8s-1.5-1-1.5-3 1.5-3 1.5-3" /><path d="M25 8s1.5-1 1.5-3-1.5-3-1.5-3" /></g></symbol>
+
+<body x-data="chessClub" x-init="init()" :class="{'overflow-hidden': showSplash}" class="bg-gray-800 text-gray-200">
+
+  <!-- Splash Screen -->
+  <div x-show="showSplash" x-transition.opacity class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50">
+    <svg class="w-20 h-20 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A8 8 0 014 12H0c0 3.04 1.13 5.82 3 7.94l3-2.65z"></path>
     </svg>
+    <h1 class="text-2xl mt-4">Carregando Clube de Xadrez...</h1>
+  </div>
 
-    <div x-data="chessClub()" x-init="init()" class="app-container" x-cloak>
-        <!-- Splash Screen -->
-        <div x-show="showSplash" @click="showSplash = false" class="splash-screen fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-500" :class="{'opacity-0 pointer-events-none': !showSplash}">
-            <div class="text-3xl font-bold mb-4">Chess Club</div>
-            <div class="text-sm">Clique para iniciar</div>
-        </div>
+  <!-- Main -->
+  <div x-show="!showSplash" x-cloak class="min-h-screen flex flex-col bg-gray-900">
+    <header class="bg-gray-800 shadow-lg sticky top-0 z-10">
+      <div class="container mx-auto px-4 py-4">
+        <h1 class="text-3xl font-bold text-yellow-400">Clube de Xadrez</h1>
+        <nav class="flex space-x-2 bg-gray-700 rounded-lg p-1 mt-4">
+          <button @click="activeTab = 'assiduidade'" :class="{'active-tab': activeTab === 'assiduidade'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Assiduidade</button>
+          <button @click="activeTab = 'ranking'" :class="{'active-tab': activeTab === 'ranking'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Ranking</button>
+          <button @click="activeTab = 'torneios'" :class="{'active-tab': activeTab === 'torneios'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Torneios</button>
+          <button @click="activeTab = 'jogar'" :class="{'active-tab': activeTab === 'jogar'}" class="tab-btn flex-1 px-4 py-2 rounded-md font-semibold">Jogar</button>
+        </nav>
+      </div>
+    </header>
 
-        <div class="main-app-content p-4" :class="{'hidden': showSplash}">
-            <!-- Menu Principal -->
-            <div class="flex space-x-4 mb-4 border-b border-gray-700">
-                <button @click="activeTab = 'attendance'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'attendance'}" class="pb-2">Presença</button>
-                <button @click="activeTab = 'ranking'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'ranking'}" class="pb-2">Ranking</button>
-                <button @click="activeTab = 'tournaments'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'tournaments'}" class="pb-2">Torneios</button>
-                <button @click="activeTab = 'play'" :class="{'text-white border-b-2 border-blue-500': activeTab === 'play'}" class="pb-2">Jogar</button>
-            </div>
+    <main class="flex-grow container mx-auto p-4 md:p-6">
+      <!-- conteúdo das abas (igual ao seu) -->
+    </main>
+  </div>
 
-            <!-- Presença -->
-            <div x-show="activeTab === 'attendance'" class="space-y-4">
-                <h2 class="text-xl font-bold mb-2">Turmas</h2>
-                <template x-for="turma in turmas" :key="turma.codigo">
-                    <div class="bg-gray-900 p-3 rounded">
-                        <h3 class="font-bold mb-2" x-text="turma.nome"></h3>
-                        <button @click="abrirPresenca(turma)" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 rounded">Ver Alunos</button>
-                    </div>
-                </template>
-            </div>
+  <script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('chessClub', () => ({
+      showSplash: true,
+      activeTab: 'assiduidade',
+      today: new Date().toLocaleDateString('pt-BR'),
 
-            <!-- Modal Presença -->
-            <div x-show="modalPresenca" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-gray-900 p-4 rounded max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                    <h3 class="text-xl font-bold mb-2" x-text="turmaAtual?.nome"></h3>
-                    <div class="mb-2">
-                        <label class="block mb-1 text-sm">Data da Aula:</label>
-                        <input type="date" x-model="dataPresenca" class="bg-gray-800 text-white p-2 rounded w-full text-sm">
-                    </div>
-                    <table class="attendance-table">
-                        <thead>
-                            <tr>
-                                <th>Aluno</th>
-                                <th>Última</th>
-                                <th>P</th>
-                                <th>F</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="aluno in turmaAtual?.alunos" :key="aluno">
-                                <tr>
-                                    <td x-text="aluno"></td>
-                                    <td x-text="getUltimaAula(aluno) || '–'"></td>
-                                    <td x-text="getTotalPresencas(aluno)"></td>
-                                    <td x-text="getTotalFaltas(aluno)"></td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                    <div class="mt-3 flex justify-end space-x-2">
-                        <button @click="fecharPresenca" class="bg-gray-600 hover:bg-gray-700 text-white py-1 px-3 rounded text-sm">Fechar</button>
-                    </div>
-                </div>
-            </div>
+      turmas: {},
+      activeTurma: null,
+      rankedPlayers: [],
+      tournamentPlayersInput: '',
+      generatedTournament: null,
+      chess: null,
+      board: [],
+      game: { time: { white: 300, black: 300 } },
+      gameStatus: 'Jogo pronto. Brancas movem.',
+      selectedSquare: null,
+      validMoves: [],
+      moveHistory: [],
 
-            <!-- Ranking -->
-            <div x-show="activeTab === 'ranking'" class="space-y-4">
-                <h2 class="text-xl font-bold mb-2">Ranking por Turma</h2>
-                <template x-for="turma in turmas" :key="turma.codigo">
-                    <div class="bg-gray-900 p-3 rounded">
-                        <h3 class="font-bold mb-2" x-text="turma.nome"></h3>
-                        <div class="bg-gray-800 rounded max-h-40 overflow-y-auto">
-                            <table class="w-full text-sm">
-                                <thead class="sticky top-0 bg-gray-800">
-                                    <tr>
-                                        <th class="p-2 text-left">#</th>
-                                        <th class="p-2 text-left">Nome</th>
-                                        <th class="p-2 text-right">V</th>
-                                        <th class="p-2 text-right">E</th>
-                                        <th class="p-2 text-right">D</th>
-                                        <th class="p-2 text-right">Pts</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="(player, index) in getRankingPorTurma(turma.codigo)" :key="player.id">
-                                        <tr class="border-b border-gray-800 hover:bg-gray-850">
-                                            <td class="p-2" x-text="index + 1"></td>
-                                            <td class="p-2" x-text="player.name"></td>
-                                            <td class="p-2 text-right" x-text="player.wins"></td>
-                                            <td class="p-2 text-right" x-text="player.draws"></td>
-                                            <td class="p-2 text-right" x-text="player.losses"></td>
-                                            <td class="p-2 text-right" x-text="player.points.toFixed(1)"></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </template>
-            </div>
+      init() {
+        console.log('App iniciado');
+        setTimeout(() => { this.showSplash = false }, 1000);
+        this.resetGame();
+      },
 
-            <!-- Torneios -->
-            <div x-show="activeTab === 'tournaments'" class="space-y-4">
-                <h2 class="text-xl font-bold">Criar Torneio</h2>
-                <div class="bg-gray-900 p-4 rounded">
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input x-model="novoTorneio.nome" placeholder="Nome do torneio" class="bg-gray-800 text-white p-2 rounded text-sm">
-                        <input x-model="novoTorneio.data" type="date" class="bg-gray-800 text-white p-2 rounded text-sm">
-                    </div>
-                    <div class="mb-2">
-                        <label class="block mb-1 text-sm">Jogadores:</label>
-                        <select x-model="novoTorneio.jogadores" class="bg-gray-800 text-white p-2 rounded w-full text-sm">
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="8">8</option>
-                            <option value="16">16</option>
-                            <option value="32">32</option>
-                            <option value="64">64</option>
-                        </select>
-                    </div>
-                    <button @click="criarTorneio" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm">Criar Torneio</button>
-                </div>
-                <div x-show="torneioAtual" class="bg-gray-900 p-4 rounded">
-                    <h3 class="font-bold" x-text="torneioAtual.nome"></h3>
-                    <p x-text="'Jogadores: ' + torneioAtual.jogadores"></p>
-                    <template x-for="(grupo, idx) in torneioAtual.grupos" :key="idx">
-                        <div class="mt-2">
-                            <h4 class="font-bold">Grupo {{ String.fromCharCode(65 + idx) }}</h4>
-                            <ul class="list-disc pl-5 text-sm">
-                                <template x-for="jogador in grupo" :key="jogador">
-                                    <li x-text="jogador"></li>
-                                </template>
-                            </ul>
-                        </div>
-                    </template>
-                </div>
-            </div>
+      resetGame() {
+        this.chess = new Chess();
+        this.moveHistory = [];
+        this.updateBoard();
+      },
 
-            <!-- Jogar -->
-            <div x-show="activeTab === 'play'" class="space-y-4">
-                <div class="bg-gray-900 p-4 rounded">
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <select x-model="modoJogo" class="bg-gray-800 text-white p-2 rounded text-sm">
-                            <option value="local">2 Jogadores (local)</option>
-                            <option value="computer">vs Computador</option>
-                        </select>
-                        <select x-model="tempoJogo" class="bg-gray-800 text-white p-2 rounded text-sm">
-                            <option value="1">1 min</option>
-                            <option value="5">5 min</option>
-                            <option value="10">10 min</option>
-                            <option value="30">30 min</option>
-                        </select>
-                    </div>
-                    <button @click="iniciarJogo" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">Iniciar Jogo</button>
-                </div>
+      updateBoard() {
+        const board = this.chess.board();
+        this.board = board;
+      },
 
-                <div x-show="jogoAtivo" class="bg-gray-900 p-4 rounded">
-                    <div class="flex justify-between mb-2 text-sm">
-                        <span>Brancas — <span x-text="formatarTempo(tempoBrancas)"></span></span>
-                        <span>Pretas — <span x-text="formatarTempo(tempoPretas)"></span></span>
-                    </div>
-                    <div id="chessboard" class="grid grid-cols-8">
-                        <template x-for="(row, rank) in tabuleiro" :key="rank">
-                            <template x-for="(square, file) in row" :key="`${rank}-${file}`">
-                                <div 
-                                    @click="clicarCasa(rank, file)"
-                                    :class="{
-                                        'bg-amber-200': movimentosPossiveis.some(m => m.rank === rank && m.file === file),
-                                        'bg-green-500': pecaSelecionada && pecaSelecionada.rank === rank && pecaSelecionada.file === file,
-                                        'bg-gray-800': (rank + file) % 2 === 0,
-                                        'bg-gray-600': (rank + file) % 2 === 1,
-                                        'cursor-pointer': square.piece || movimentosPossiveis.some(m => m.rank === rank && m.file === file)
-                                    }"
-                                    class="relative"
-                                >
-                                    <span x-show="rank === 7" class="notation-file">{{ String.fromCharCode(97 + file) }}</span>
-                                    <span x-show="file === 0" class="notation-rank">{{ 8 - rank }}</span>
-                                    <div x-html="square.piece ? getSVG(square.piece.type, square.piece.color) : ''"></div>
-                                </div>
-                            </template>
-                        </template>
-                    </div>
-                    <div class="mt-2 text-center text-sm" x-text="statusJogo"></div>
-
-                    <!-- Notação Algébrica -->
-                    <div class="mt-4 bg-gray-800 p-2 rounded">
-                        <h3 class="text-xs font-bold mb-1">Notação Algébrica</h3>
-                        <div class="max-h-20 overflow-y-auto text-xs">
-                            <template x-for="mov in notacao" :key="mov">
-                                <div x-text="mov"></div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Análise -->
-                    <div class="mt-2 bg-gray-800 p-2 rounded">
-                        <h3 class="text-xs font-bold mb-1">Análise</h3>
-                        <div class="text-xs" x-text="analise || 'Faça uma jogada para ver a análise.'"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function chessClub() {
-            return {
-                showSplash: true,
-                activeTab: 'attendance',
-
-                // --- DADOS REAIS DAS TURMAS ---
-                turmas: [
-                    { codigo: '611', nome: 'Turma 611', alunos: ["Yasmin Faquetin", "Davi Lucca Martins Pereira", "Theo Machado", "Wagner Ferreira", "Davi Senne", "Maria Eduarda dos Santos", "Danilo Felipe", "Ryan Bacelar", "Otávio Pires", "Pietro Coutinho", "Miguel Roberto", "Bernardo Costa", "Yasmin da Silva Melo", "Yuri Nascimento", "Isabella Teixeira das Chagas", "Isadora Torres de Andrade", "Alice Caldeira de Lima", "Nicolly Marques", "Nicolly Vitoria", "Enzo Samuel", "Victor Pereira"] },
-                    { codigo: '612', nome: 'Turma 612', alunos: ["Lorena Militão", "Thaylor Barros", "Raphaela Schroedler", "Hugo Tobinaga", "Myrella Fontura", "Artur Tobinaga", "Miguel Araújo", "Ana Beatriz", "Jamylle Marcelo de Moraes", "Talita Reis", "Maria Eduarda dos Santos Maciel", "Hadassa Gomes Travasso", "Daniele Pereira de Oliveira", "Carlos Alexandre", "Alice Miranda", "Agatha de Lima", "Lunna Jéssica", "Alex Bruneis", "Vitória Salvaya", "Heitor Chelles", "Jorge William de Souza Lima", "Maria Luiza da Costa", "Henrique Cerqueira", "Guilherme da Silva Alves"] },
-                    { codigo: '613', nome: 'Turma 613', alunos: ["Agatha Silva", "Alice do Nascimento", "Aysha Vitoria", "Davi Lucca Santos Mendonça", "Edgar de Carvalho Rodrigues", "Eduarda Moreira", "Emanuelly Menezes de Oliveira", "Ian Carlos da Silva Nascimento", "Jefferson Nery", "Jefferson Santos", "Joyce de Souza", "Julia Labre Mathias", "Ketelen Julia", "Larissa Sales", "Lucas Neres", "Luíza Araújo", "Manuela de Souza", "Murillo Toste de Souza", "Pietra Fernandes", "Rafaelle Pessanha", "Yago dos Anjos", "Gabriel Vivas Rosa"] },
-                    { codigo: '621', nome: 'Turma 621', alunos: ["Yasmin Faquetin", "Davi Lucca Martins Pereira", "Theo Machado", "Wagner Ferreira", "Davi Senne", "Maria Eduarda dos Santos", "Danilo Felipe", "Ryan Bacelar", "Otávio Pires", "Pietro Coutinho", "Miguel Roberto", "Bernardo Costa", "Yasmin da Silva Melo", "Yuri Nascimento", "Isabella Teixeira das Chagas", "Isadora Torres de Andrade", "Alice Caldeira de Lima", "Nicolly Marques", "Nicolly Vitoria", "Enzo Samuel", "Victor Pereira"] },
-                    { codigo: '622', nome: 'Turma 622', alunos: ["Alice Victoria", "Ana Julia Goulart", "Anne Vieira", "Bruno Junqueira", "Davi Marques", "Emanuelly Paixão", "Érick Patrick da Silva Trindade", "Felipe Araújo", "Gabriel do Nascimento", "Giovanni Netto", "Guilherme Santos", "Hagata Guimarães", "Heitor Araújo", "Isaias Alexsander", "Laura Soares", "Lívia Cabral", "Luis Eduardo Correa Farias", "Luisa Soares", "Matheus Figueiredo", "Melina da Costa", "Miguel Porcino da Silva", "Dominic de Albuquerque", "Tiago Ferreira"] },
-                    { codigo: '623', nome: 'Turma 623', alunos: ["Ana Heloiza Marcolina Porto", "Cauã Lanor", "Emilly da Silva", "Gabriella Sofia", "Henrique Siqueira", "Lucas Melo", "Maria Eduarda Costa", "Maria Roberta", "Mateus Messias Venâncio Lima", "Matheus Miguel", "Miguel Ferreira dos Santos", "Mirella Felix", "Moisés Rodrigues", "Mykaella Oliveira", "Nicolas Aparício", "Pyetro Miguel Prates", "Thaune Rodrigues", "Yago dos Anjos Silva"] }
-                ],
-
-                // --- PRESENÇA REAL DOS CSVs ---
-                presencaReal: {
-                    '611': {
-                        "Yasmin Faquetin": { ultima: "F", totalP: 3, totalF: 6 },
-                        "Davi Lucca Martins Pereira": { ultima: "P", totalP: 7, totalF: 2 },
-                        "Theo Machado": { ultima: "P", totalP: 5, totalF: 4 },
-                        "Wagner Ferreira": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Davi Senne": { ultima: "F", totalP: 4, totalF: 5 },
-                        "Maria Eduarda dos Santos": { ultima: "F", totalP: 5, totalF: 4 },
-                        "Danilo Felipe": { ultima: "P", totalP: 7, totalF: 3 },
-                        "Ryan Bacelar": { ultima: "P", totalP: 5, totalF: 4 },
-                        "Otávio Pires": { ultima: "P", totalP: 4, totalF: 6 },
-                        "Pietro Coutinho": { ultima: "F", totalP: 2, totalF: 7 },
-                        "Miguel Roberto": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Bernardo Costa": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Yasmin da Silva Melo": { ultima: "F", totalP: 4, totalF: 5 },
-                        "Yuri Nascimento": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Isabella Teixeira das Chagas": { ultima: "P", totalP: 5, totalF: 5 },
-                        "Isadora Torres de Andrade": { ultima: "P", totalP: 5, totalF: 4 },
-                        "Alice Caldeira de Lima": { ultima: "P", totalP: 4, totalF: 6 },
-                        "Nicolly Marques": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Nicolly Vitoria": { ultima: "P", totalP: 2, totalF: 7 },
-                        "Enzo Samuel": { ultima: "F", totalP: 2, totalF: 7 },
-                        "Victor Pereira": { ultima: "P", totalP: 4, totalF: 6 }
-                    },
-                    '612': {
-                        "Lorena Militão": { ultima: "P", totalP: 6, totalF: 6 },
-                        "Thaylor Barros": { ultima: "F", totalP: 5, totalF: 7 },
-                        "Raphaela Schroedler": { ultima: "P", totalP: 6, totalF: 6 },
-                        "Hugo Tobinaga": { ultima: "P", totalP: 5, totalF: 8 },
-                        "Myrella Fontura": { ultima: "P", totalP: 6, totalF: 7 },
-                        "Artur Tobinaga": { ultima: "P", totalP: 4, totalF: 9 },
-                        "Miguel Araújo": { ultima: "P", totalP: 4, totalF: 8 },
-                        "Ana Beatriz": { ultima: "P", totalP: 8, totalF: 4 },
-                        "Jamylle Marcelo de Moraes": { ultima: "P", totalP: 7, totalF: 5 },
-                        "Talita Reis": { ultima: "P", totalP: 6, totalF: 6 },
-                        "Maria Eduarda dos Santos Maciel": { ultima: "P", totalP: 6, totalF: 6 },
-                        "Hadassa Gomes Travasso": { ultima: "P", totalP: 7, totalF: 5 },
-                        "Daniele Pereira de Oliveira": { ultima: "P", totalP: 7, totalF: 5 },
-                        "Carlos Alexandre": { ultima: "F", totalP: 1, totalF: 11 },
-                        "Alice Miranda": { ultima: "P", totalP: 7, totalF: 6 },
-                        "Agatha de Lima": { ultima: "P", totalP: 5, totalF: 7 },
-                        "Lunna Jéssica": { ultima: "P", totalP: 5, totalF: 7 },
-                        "Alex Bruneis": { ultima: "P", totalP: 3, totalF: 10 },
-                        "Vitória Salvaya": { ultima: "P", totalP: 3, totalF: 9 },
-                        "Heitor Chelles": { ultima: "F", totalP: 1, totalF: 11 },
-                        "Jorge William de Souza Lima": { ultima: "P", totalP: 3, totalF: 9 },
-                        "Maria Luiza da Costa": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Henrique Cerqueira": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Guilherme da Silva Alves": { ultima: "F", totalP: 1, totalF: 11 }
-                    },
-                    '613': {
-                        "Agatha Silva": { ultima: "P", totalP: 4, totalF: 0 },
-                        "Alice do Nascimento": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Aysha Vitoria": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Davi Lucca Santos Mendonça": { ultima: "F", totalP: 1, totalF: 3 },
-                        "Edgar de Carvalho Rodrigues": { ultima: "P", totalP: 4, totalF: 2 },
-                        "Eduarda Moreira": { ultima: "P", totalP: 5, totalF: 1 },
-                        "Emanuelly Menezes de Oliveira": { ultima: "F", totalP: 1, totalF: 3 },
-                        "Ian Carlos da Silva Nascimento": { ultima: "P", totalP: 5, totalF: 1 },
-                        "Jefferson Nery": { ultima: "P", totalP: 5, totalF: 1 },
-                        "Jefferson Santos": { ultima: "P", totalP: 6, totalF: 1 },
-                        "Joyce de Souza": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Julia Labre Mathias": { ultima: "P", totalP: 7, totalF: 0 },
-                        "Ketelen Julia": { ultima: "P", totalP: 3, totalF: 0 },
-                        "Larissa Sales": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Lucas Neres": { ultima: "P", totalP: 4, totalF: 0 },
-                        "Luíza Araújo": { ultima: "P", totalP: 6, totalF: 0 },
-                        "Manuela de Souza": { ultima: "P", totalP: 2, totalF: 0 },
-                        "Murillo Toste de Souza": { ultima: "F", totalP: 3, totalF: 1 },
-                        "Pietra Fernandes": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Rafaelle Pessanha": { ultima: "P", totalP: 3, totalF: 1 },
-                        "Yago dos Anjos": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Gabriel Vivas Rosa": { ultima: "P", totalP: 2, totalF: 0 }
-                    },
-                    '621': {
-                        "Yasmin Faquetin": { ultima: "F", totalP: 3, totalF: 6 },
-                        "Davi Lucca Martins Pereira": { ultima: "P", totalP: 7, totalF: 2 },
-                        "Theo Machado": { ultima: "P", totalP: 5, totalF: 4 },
-                        "Wagner Ferreira": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Davi Senne": { ultima: "F", totalP: 4, totalF: 5 },
-                        "Maria Eduarda dos Santos": { ultima: "F", totalP: 5, totalF: 4 },
-                        "Danilo Felipe": { ultima: "P", totalP: 7, totalF: 3 },
-                        "Ryan Bacelar": { ultima: "P", totalP: 5, totalF: 4 },
-                        "Otávio Pires": { ultima: "P", totalP: 4, totalF: 6 },
-                        "Pietro Coutinho": { ultima: "F", totalP: 2, totalF: 7 },
-                        "Miguel Roberto": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Bernardo Costa": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Yasmin da Silva Melo": { ultima: "F", totalP: 4, totalF: 5 },
-                        "Yuri Nascimento": { ultima: "P", totalP: 1, totalF: 0 },
-                        "Isabella Teixeira das Chagas": { ultima: "P", totalP: 5, totalF: 5 },
-                        "Isadora Torres de Andrade": { ultima: "P", totalP: 5, totalF: 4 },
-                        "Alice Caldeira de Lima": { ultima: "P", totalP: 4, totalF: 6 },
-                        "Nicolly Marques": { ultima: "F", totalP: 1, totalF: 8 },
-                        "Nicolly Vitoria": { ultima: "P", totalP: 2, totalF: 7 },
-                        "Enzo Samuel": { ultima: "F", totalP: 2, totalF: 7 },
-                        "Victor Pereira": { ultima: "P", totalP: 4, totalF: 6 }
-                    },
-                    '622': {
-                        "Alice Victoria": { ultima: "P", totalP: 3, totalF: 4 },
-                        "Ana Julia Goulart": { ultima: "P", totalP: 8, totalF: 4 },
-                        "Anne Vieira": { ultima: "P", totalP: 1, totalF: 2 },
-                        "Bruno Junqueira": { ultima: "P", totalP: 6, totalF: 2 },
-                        "Davi Marques": { ultima: "F", totalP: 0, totalF: 3 },
-                        "Emanuelly Paixão": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Érick Patrick da Silva Trindade": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Felipe Araújo": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Gabriel do Nascimento": { ultima: "P", totalP: 8, totalF: 6 },
-                        "Giovanni Netto": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Guilherme Santos": { ultima: "P", totalP: 4, totalF: 5 },
-                        "Hagata Guimarães": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Heitor Araújo": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Isaias Alexsander": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Laura Soares": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Lívia Cabral": { ultima: "P", totalP: 2, totalF: 4 },
-                        "Luis Eduardo Correa Farias": { ultima: "P", totalP: 1, totalF: 1 },
-                        "Luisa Soares": { ultima: "F", totalP: 0, totalF: 1 },
-                        "Matheus Figueiredo": { ultima: "P", totalP: 1, totalF: 1 },
-                        "Melina da Costa": { ultima: "P", totalP: 2, totalF: 1 },
-                        "Miguel Porcino da Silva": { ultima: "P", totalP: 6, totalF: 4 },
-                        "Dominic de Albuquerque": { ultima: "P", totalP: 1, totalF: 2 },
-                        "Tiago Ferreira": { ultima: "P", totalP: 4, totalF: 1 }
-                    },
-                    '623': {
-                        "Ana Heloiza Marcolina Porto": { ultima: "P", totalP: 2, totalF: 9 },
-                        "Cauã Lanor": { ultima: "F", totalP: 1, totalF: 10 },
-                        "Emilly da Silva": { ultima: "F", totalP: 7, totalF: 4 },
-                        "Gabriella Sofia": { ultima: "F", totalP: 6, totalF: 5 },
-                        "Henrique Siqueira": { ultima: "F", totalP: 3, totalF: 8 },
-                        "Lucas Melo": { ultima: "F", totalP: 3, totalF: 8 },
-                        "Maria Eduarda Costa": { ultima: "F", totalP: 1, totalF: 9 },
-                        "Maria Roberta": { ultima: "F", totalP: 5, totalF: 6 },
-                        "Mateus Messias Venâncio Lima": { ultima: "F", totalP: 5, totalF: 6 },
-                        "Matheus Miguel": { ultima: "F", totalP: 2, totalF: 9 },
-                        "Miguel Ferreira dos Santos": { ultima: "P", totalP: 2, totalF: 9 },
-                        "Mirella Felix": { ultima: "F", totalP: 4, totalF: 7 },
-                        "Moisés Rodrigues": { ultima: "F", totalP: 1, totalF: 10 },
-                        "Mykaella Oliveira": { ultima: "F", totalP: 6, totalF: 5 },
-                        "Nicolas Aparício": { ultima: "F", totalP: 1, totalF: 10 },
-                        "Pyetro Miguel Prates": { ultima: "F", totalP: 2, totalF: 9 },
-                        "Thaune Rodrigues": { ultima: "F", totalP: 3, totalF: 8 },
-                        "Yago dos Anjos Silva": { ultima: "F", totalP: 2, totalF: 9 }
-                    }
-                },
-
-                // --- RANKING REAL DOS TORNEIOS ---
-                rankingReal: {
-                    '611': {
-                        "Bernardo Costa": { wins: 2, losses: 1, draws: 1, points: 2.5 },
-                        "Otávio Pires": { wins: 2, losses: 2, draws: 1, points: 2.5 },
-                        "Maria Eduarda dos Santos": { wins: 1, losses: 0, draws: 1, points: 1.5 },
-                        "Nicolly Marques": { wins: 0, losses: 2, draws: 1, points: 1.0 },
-                        "Victor Pereira": { wins: 0, losses: 1, draws: 1, points: 0.5 },
-                        "Nicolly Vitoria": { wins: 0, losses: 1, draws: 1, points: 0.5 }
-                    },
-                    '612': {
-                        "Ana Beatriz": { wins: 8, losses: 4, draws: 0, points: 8.0 },
-                        "Jamylle Marcelo de Moraes": { wins: 7, losses: 5, draws: 0, points: 7.0 },
-                        "Hadassa Gomes Travasso": { wins: 7, losses: 5, draws: 0, points: 7.0 },
-                        "Daniele Pereira de Oliveira": { wins: 7, losses: 5, draws: 0, points: 7.0 },
-                        "Alice Miranda": { wins: 7, losses: 6, draws: 0, points: 7.0 },
-                        "Lorena Militão": { wins: 6, losses: 6, draws: 0, points: 6.0 }
-                    },
-                    '613': {
-                        "Jefferson Santos": { wins: 5, losses: 3, draws: 3, points: 6.5 },
-                        "Julia Labre Mathias": { wins: 10, losses: 0, draws: 2, points: 11.0 },
-                        "Lucas Neres": { wins: 11, losses: 2, draws: 0, points: 11.0 },
-                        "Murillo Toste de Souza": { wins: 3, losses: 0, draws: 3, points: 4.5 },
-                        "Jefferson Nery": { wins: 3, losses: 2, draws: 0, points: 3.0 },
-                        "Edgar de Carvalho Rodrigues": { wins: 1, losses: 3, draws: 2, points: 2.0 }
-                    },
-                    '621': {
-                        "Esther da Silva Lopes": { wins: 2, losses: 0, draws: 2, points: 2.0 },
-                        "Miguel Neves": { wins: 2, losses: 1, draws: 0, points: 2.0 },
-                        "Luiz Fellipe Silva Miranda": { wins: 2, losses: 2, draws: 0, points: 2.0 }
-                    },
-                    '622': {
-                        "Ana Julia Goulart": { wins: 8, losses: 2, draws: 4, points: 10.0 },
-                        "Gabriel do Nascimento": { wins: 8, losses: 6, draws: 8, points: 12.0 },
-                        "Bruno Junqueira": { wins: 5, losses: 1, draws: 2, points: 6.0 },
-                        "Miguel Porcino da Silva": { wins: 4, losses: 2, draws: 4, points: 6.0 },
-                        "Guilherme Santos": { wins: 2, losses: 3, draws: 5, points: 4.5 },
-                        "Melina da Costa": { wins: 1, losses: 1, draws: 1, points: 1.5 }
-                    },
-                    '623': {
-                        "Emilly da Silva": { wins: 7, losses: 4, draws: 0, points: 7.0 },
-                        "Mykaella Oliveira": { wins: 6, losses: 5, draws: 0, points: 6.0 },
-                        "Gabriella Sofia": { wins: 6, losses: 5, draws: 0, points: 6.0 },
-                        "Maria Roberta": { wins: 5, losses: 6, draws: 0, points: 5.0 },
-                        "Mateus Messias Venâncio Lima": { wins: 5, losses: 6, draws: 0, points: 5.0 }
-                    }
-                },
-
-                // --- PRESENÇA MODAL ---
-                modalPresenca: false,
-                turmaAtual: null,
-                dataPresenca: new Date().toISOString().split('T')[0],
-
-                // --- RANKING ---
-                rankedPlayers: [],
-
-                // --- TORNEIOS ---
-                novoTorneio: { nome: '', data: '', jogadores: '8' },
-                torneioAtual: null,
-
-                // --- JOGO ---
-                modoJogo: 'local',
-                tempoJogo: '10',
-                jogoAtivo: false,
-                chess: null,
-                tabuleiro: [],
-                pecaSelecionada: null,
-                movimentosPossiveis: [],
-                notacao: [],
-                analise: '',
-                statusJogo: 'Inicie um novo jogo.',
-                tempoBrancas: 0,
-                tempoPretas: 0,
-                timer: null,
-
-                init() {
-                    this.gerarRankingCompleto();
-                },
-
-                // --- PRESENÇA ---
-                abrirPresenca(turma) {
-                    this.turmaAtual = turma;
-                    this.modalPresenca = true;
-                },
-                fecharPresenca() {
-                    this.modalPresenca = false;
-                },
-                getUltimaAula(aluno) {
-                    const dados = this.presencaReal[this.turmaAtual.codigo]?.[aluno];
-                    return dados ? dados.ultima : '–';
-                },
-                getTotalPresencas(aluno) {
-                    const dados = this.presencaReal[this.turmaAtual.codigo]?.[aluno];
-                    return dados ? dados.totalP : 0;
-                },
-                getTotalFaltas(aluno) {
-                    const dados = this.presencaReal[this.turmaAtual.codigo]?.[aluno];
-                    return dados ? dados.totalF : 0;
-                },
-
-                // --- RANKING POR TURMA ---
-                getRankingPorTurma(codigo) {
-                    const ranking = this.rankingReal[codigo] || {};
-                    let todos = [];
-                    Object.keys(ranking).forEach(nome => {
-                        const r = ranking[nome];
-                        todos.push({
-                            id: nome.toLowerCase().replace(/\s+/g, '-'),
-                            name: nome,
-                            wins: r.wins,
-                            losses: r.losses,
-                            draws: r.draws,
-                            points: r.points
-                        });
-                    });
-                    return todos.sort((a, b) => b.points - a.points);
-                },
-
-                // --- TORNEIOS ---
-                criarTorneio() {
-                    if (!this.novoTorneio.nome || !this.novoTorneio.data) {
-                        alert('Preencha todos os campos.');
-                        return;
-                    }
-                    const total = parseInt(this.novoTorneio.jogadores);
-                    let todosAlunos = [];
-                    this.turmas.forEach(t => t.alunos.forEach(a => todosAlunos.push(a)));
-                    const jogadores = [...new Set(todosAlunos)].slice(0, total);
-                    let grupos = [];
-                    if (total <= 5) {
-                        grupos = [jogadores];
-                    } else if (total === 6 || total === 8) {
-                        const meio = Math.ceil(jogadores.length / 2);
-                        grupos = [jogadores.slice(0, meio), jogadores.slice(meio)];
-                    } else {
-                        const tamGrupo = 8;
-                        for (let i = 0; i < jogadores.length; i += tamGrupo) {
-                            grupos.push(jogadores.slice(i, i + tamGrupo));
-                        }
-                    }
-                    this.torneioAtual = {
-                        nome: this.novoTorneio.nome,
-                        data: this.novoTorneio.data,
-                        jogadores: total,
-                        grupos: grupos
-                    };
-                    this.novoTorneio = { nome: '', data: '', jogadores: '8' };
-                },
-
-                // --- JOGO ---
-                iniciarJogo() {
-                    this.chess = new Chess();
-                    this.tempoBrancas = this.tempoJogo * 60;
-                    this.tempoPretas = this.tempoJogo * 60;
-                    this.jogoAtivo = true;
-                    this.atualizarTabuleiro();
-                    this.iniciarTimer();
-                },
-                formatarTempo(segundos) {
-                    if (segundos < 0) segundos = 0;
-                    const m = Math.floor(segundos / 60);
-                    const s = segundos % 60;
-                    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                },
-                iniciarTimer() {
-                    if (this.timer) clearInterval(this.timer);
-                    this.timer = setInterval(() => {
-                        if (this.chess.isGameOver()) {
-                            clearInterval(this.timer);
-                            return;
-                        }
-                        const turno = this.chess.turn();
-                        if (turno === 'w') {
-                            this.tempoBrancas--;
-                            if (this.tempoBrancas <= 0) {
-                                this.statusJogo = 'Tempo esgotado! Pretas vencem.';
-                                clearInterval(this.timer);
-                            }
-                        } else {
-                            this.tempoPretas--;
-                            if (this.tempoPretas <= 0) {
-                                this.statusJogo = 'Tempo esgotado! Brancas vencem.';
-                                clearInterval(this.timer);
-                            }
-                        }
-                    }, 1000);
-                },
-                atualizarTabuleiro() {
-                    const fen = this.chess.fen().split(' ')[0];
-                    const linhas = fen.split('/');
-                    const novoTabuleiro = [];
-                    for (let i = 0; i < 8; i++) {
-                        const linha = [];
-                        let col = 0;
-                        for (const char of linhas[i]) {
-                            if (isNaN(char)) {
-                                const cor = char === char.toUpperCase() ? 'w' : 'b';
-                                const tipo = char.toLowerCase();
-                                linha.push({ piece: { type: tipo, color: cor } });
-                                col++;
-                            } else {
-                                for (let j = 0; j < parseInt(char); j++) {
-                                    linha.push({ piece: null });
-                                    col++;
-                                }
-                            }
-                        }
-                        novoTabuleiro.push(linha);
-                    }
-                    this.tabuleiro = novoTabuleiro;
-                    this.notacao = this.chess.pgn().split(/\d+\./).filter(n => n.trim()).map(n => n.trim()).join(' ').split(' ').filter(n => n);
-                    this.atualizarStatus();
-                    this.analise = `Próximos movimentos: ${this.chess.moves().join(', ')}`;
-                },
-                atualizarStatus() {
-                    let status = '';
-                    const turno = this.chess.turn() === 'w' ? 'Brancas' : 'Pretas';
-                    if (this.chess.isCheckmate()) {
-                        status = `Xeque-mate! ${turno === 'Brancas' ? 'Pretas' : 'Brancas'} vencem.`;
-                    } else if (this.chess.isDraw()) {
-                        status = 'Empate!';
-                    } else {
-                        status = `${turno} jogam.`;
-                        if (this.chess.isCheck()) status += ` ${turno} em xeque.`;
-                    }
-                    this.statusJogo = status;
-                },
-                clicarCasa(rank, file) {
-                    const casa = String.fromCharCode(97 + file) + (8 - rank);
-                    const casaObj = this.tabuleiro[rank][file];
-                    if (this.pecaSelecionada) {
-                        const de = String.fromCharCode(97 + this.pecaSelecionada.file) + (8 - this.pecaSelecionada.rank);
-                        try {
-                            this.chess.move({ from: de, to: casa });
-                            this.atualizarTabuleiro();
-                            this.pecaSelecionada = null;
-                            this.movimentosPossiveis = [];
-                            if (this.modoJogo === 'computer' && this.chess.turn() === 'b') {
-                                setTimeout(() => {
-                                    const moves = this.chess.moves();
-                                    if (moves.length > 0) {
-                                        const move = moves[Math.floor(Math.random() * moves.length)];
-                                        this.chess.move(move);
-                                        this.atualizarTabuleiro();
-                                    }
-                                }, 600);
-                            }
-                        } catch (e) {
-                            this.pecaSelecionada = null;
-                            this.movimentosPossiveis = [];
-                        }
-                    } else if (casaObj.piece) {
-                        const peca = this.chess.get(casa);
-                        if (peca && ((peca.color === 'w' && this.chess.turn() === 'w') || (peca.color === 'b' && this.chess.turn() === 'b'))) {
-                            this.pecaSelecionada = { rank, file };
-                            const moves = this.chess.moves({ square: casa, verbose: true });
-                            this.movimentosPossiveis = moves.map(m => {
-                                const f = m.to.charCodeAt(0) - 97;
-                                const r = 8 - parseInt(m.to[1]);
-                                return { rank: r, file: f };
-                            });
-                        }
-                    }
-                },
-                getSVG(type, color) {
-                    const id = {p:'pawn',r:'rook',n:'knight',b:'bishop',q:'queen',k:'king'}[type];
-                    const cls = color === 'w' ? 'piece-white' : 'piece-black';
-                    return `<svg class="w-full h-full" viewBox="0 0 45 45"><use href="#${id}" class="${cls}"/></svg>`;
-                }
-            };
-        }
-    </script>
+      getPieceSymbol(type, color) {
+        const symbols = {
+          p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚'
+        };
+        return color === 'w' ? symbols[type].toUpperCase() : symbols[type];
+      }
+    }))
+  })
+  </script>
 </body>
 </html>
